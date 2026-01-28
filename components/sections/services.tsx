@@ -37,7 +37,7 @@ const variants = ["light", "green", "dark"] as const;
 
 export default function Services() {
   return (
-    <section className="flex flex-col items-center justify-center px-4 md:px-8 xl:px-0 max-w-7xl mx-auto py-16">
+    <section className="flex flex-col items-center justify-center px-4 md:px-8 xl:px-0">
       <div className="flex flex-col md:flex-row items-start md:items-center gap-8 w-full mb-12">
         <h2 className="bg-[#B9FF66] rounded-md px-4 py-2 text-3xl md:text-4xl font-semibold whitespace-nowrap">
           Services
