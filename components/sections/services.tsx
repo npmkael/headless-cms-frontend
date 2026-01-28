@@ -39,10 +39,10 @@ export default function Services() {
   return (
     <section className="flex flex-col items-center justify-center px-4 md:px-8 xl:px-0">
       <div className="flex flex-col md:flex-row items-start md:items-center gap-8 w-full mb-12">
-        <h2 className="bg-[#B9FF66] rounded-md px-4 py-2 text-3xl md:text-4xl font-semibold whitespace-nowrap">
+        <h2 className="bg-[#B9FF66] rounded-md px-1.5 py-1 text-3xl md:text-4xl font-semibold whitespace-nowrap">
           Services
         </h2>
-        <p className="text-base md:text-lg max-w-xl">
+        <p className="text-sm md:text-base max-w-xl">
           At our digital marketing agency, we offer a range of services to help
           businesses grow and succeed online. These services include:
         </p>

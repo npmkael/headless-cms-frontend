@@ -46,10 +46,10 @@ export default function Testimonials() {
   return (
     <section className="flex flex-col items-center justify-center">
       <div className="flex flex-col md:flex-row items-start md:items-center gap-8 w-full mb-12">
-        <h2 className="bg-[#B9FF66] rounded-md px-4 py-2 text-3xl md:text-4xl font-semibold whitespace-nowrap">
+        <h2 className="bg-[#B9FF66] rounded-md px-1.5 py-1 text-3xl md:text-4xl font-semibold whitespace-nowrap">
           Testimonials
         </h2>
-        <p className="text-base md:text-lg max-w-lg">
+        <p className="text-sm md:text-base max-w-lg">
           Hear from Our Satisfied Clients: Read Our Testimonials to Learn More
           about Our Digital Marketing Services
         </p>

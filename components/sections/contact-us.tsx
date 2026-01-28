@@ -21,11 +21,11 @@ export default function ContactUs() {
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full mb-10 md:mb-14">
         <h2
           id="team-heading"
-          className="bg-main rounded-md px-4 py-2 text-2xl md:text-3xl lg:text-4xl font-semibold whitespace-nowrap"
+          className="bg-main rounded-md px-1.5 py-1 text-2xl md:text-3xl lg:text-4xl font-semibold whitespace-nowrap"
         >
           Contact Us
         </h2>
-        <p className="text-base md:text-lg max-w-xs">
+        <p className="text-sm md:text-base max-w-xs">
           Connect with Us: Let's Discuss Your Digital Marketing Needs
         </p>
       </div>
