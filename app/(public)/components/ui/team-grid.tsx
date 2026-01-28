@@ -128,9 +128,12 @@ export default function TeamGrid({
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 w-full mb-8"
     >
       {teamMembers ? (
-        teamMembers.map((member, index) => (
-          <TeamCard key={member.id} member={member} id={member.id} />
-        ))
+        teamMembers.map(
+          (member, index) =>
+            member.is_active && (
+              <TeamCard key={member.id} member={member} id={member.id} />
+            )
+        )
       ) : (
         <div>
           <p>No team members found</p>

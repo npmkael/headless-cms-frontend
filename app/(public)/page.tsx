@@ -59,7 +59,7 @@ export default async function Home() {
       <CaseStudies caseStudies={caseStudies} />
       <Process workingProcesses={workingProcesses} />
       <Team teamMembers={teamMembers} />
-      <Testimonials />
+      <Testimonials testimonials={testimonials} />
       <ContactUs />
       <Footer />
     </>

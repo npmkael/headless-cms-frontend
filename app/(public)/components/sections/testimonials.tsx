@@ -4,11 +4,28 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-export default function Testimonials() {
+type Testimonial =
+  | {
+      id: string;
+      name: string | null;
+      role_company: string | null;
+      message: string | null;
+      avatar_url: string | null;
+      is_active: boolean;
+    }[]
+  | null;
+
+export default function Testimonials({
+  testimonials,
+}: {
+  testimonials: Testimonial;
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [slideWidth, setSlideWidth] = useState(598); // 550px card + 48px gap
   const [initialOffset, setInitialOffset] = useState(0);
-  const totalSlides = 3;
+  const totalSlides = testimonials ? testimonials.length : 0;
+
+  // TODO: Message bubbles are still not centered
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -58,7 +75,7 @@ export default function Testimonials() {
       {/*  */}
       <div className="flex flex-col bg-black rounded-[32px] md:rounded-[40px] py-8 md:py-12 lg:py-16 w-full overflow-hidden">
         <motion.div
-          className="flex w-max md:px-[calc(50%-275px)]"
+          className="flex w-max md:px-[calc(50%-275px)] gap-4 md:gap-6"
           animate={{
             x: initialOffset - currentIndex * slideWidth,
           }}
@@ -68,41 +85,47 @@ export default function Testimonials() {
             damping: 30,
           }}
         >
-          <div className="shrink-0 flex flex-col">
-            <div className="relative">
-              <div className="border border-main p-6 md:p-12 w-[calc(100vw-80px)] md:w-[550px] rounded-[32px] md:rounded-[45px]">
-                <p className="text-xs md:text-base text-foreground leading-relaxed">
-                  "We have been working with Positivus for the past year and
-                  have seen a significant increase in website traffic and leads
-                  as a result of their efforts. The team is professional,
-                  responsive, and truly cares about the success of our business.
-                  We highly recommend Positivus to any company looking to grow
-                  their online presence."
-                </p>
-              </div>
-              <svg
-                className="absolute left-8 md:left-14 z-10 -bottom-[25px]"
-                width="40"
-                height="28"
-                viewBox="0 0 48 32"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M1 1L24 28L47 1"
-                  stroke="#B9FF66"
-                  strokeWidth="1"
-                  fill="#191A23"
-                />
-              </svg>
+          {testimonials ? (
+            testimonials.map(
+              (testimonial) =>
+                testimonial.is_active && (
+                  <div key={testimonial.id} className="shrink-0 flex flex-col">
+                    <div className="relative">
+                      <div className="border border-main p-6 md:p-12 w-[calc(100vw-80px)] md:w-[550px] rounded-[32px] md:rounded-[45px]">
+                        <p className="text-xs md:text-base text-foreground leading-relaxed">
+                          "{testimonial.message}"
+                        </p>
+                      </div>
+                      <svg
+                        className="absolute left-8 md:left-14 z-10 -bottom-[25px]"
+                        width="40"
+                        height="28"
+                        viewBox="0 0 48 32"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M1 1L24 28L47 1"
+                          stroke="#B9FF66"
+                          strokeWidth="1"
+                          fill="#191A23"
+                        />
+                      </svg>
+                    </div>
+                    <div className="mt-8 md:mt-12 ml-8 md:ml-14">
+                      <p className="text-main text-lg">{testimonial.name}</p>
+                      <p className="text-white text-sm">
+                        {testimonial.role_company}
+                      </p>
+                    </div>
+                  </div>
+                )
+            )
+          ) : (
+            <div>
+              <p>No testimonials found</p>
             </div>
-            <div className="mt-8 md:mt-12 ml-8 md:ml-14">
-              <p className="text-main text-lg">John Smith</p>
-              <p className="text-white text-sm">
-                Marketing Director at XYZ Corp
-              </p>
-            </div>
-          </div>
+          )}
         </motion.div>
 
         {/* navigation buttons and dot indicators */}
