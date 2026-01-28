@@ -7,6 +7,7 @@ import Process from "@/components/sections/process";
 import Team from "@/components/sections/team";
 import Testimonials from "@/components/sections/testimonials";
 import ContactUs from "@/components/sections/contact-us";
+import Footer from "@/components/sections/footer";
 
 export default function Home() {
   // TODO: Refactor text highlights bg-main
@@ -21,6 +22,7 @@ export default function Home() {
       <Team />
       <Testimonials />
       <ContactUs />
+      <Footer />
     </main>
   );
 }
