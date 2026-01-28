@@ -57,7 +57,7 @@ export default async function Home() {
       <Services services={services} />
       <CallToAction />
       <CaseStudies caseStudies={caseStudies} />
-      <Process />
+      <Process processes={processes} />
       <Team />
       <Testimonials />
       <ContactUs />

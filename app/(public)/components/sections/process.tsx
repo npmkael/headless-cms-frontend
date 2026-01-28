@@ -6,53 +6,17 @@ import {
   AccordionContent,
 } from "@/app/(public)/components/ui/accordion";
 
-// Process steps data
-const processSteps = [
-  {
-    id: "consultation",
-    number: "01",
-    title: "Consultation",
-    content:
-      "During the initial consultation, we will discuss your business goals and objectives, target audience, and current marketing efforts. This will allow us to understand your needs and tailor our services to best fit your requirements.",
-  },
-  {
-    id: "research",
-    number: "02",
-    title: "Research and Strategy Development",
-    content:
-      "Our team conducts thorough market research and competitive analysis to develop a data-driven strategy. We identify key opportunities and create a comprehensive roadmap aligned with your business objectives and target audience preferences.",
-  },
-  {
-    id: "implementation",
-    number: "03",
-    title: "Implementation",
-    content:
-      "We bring the strategy to life through careful execution across all relevant channels. Our team handles everything from content creation to campaign setup, ensuring consistent messaging and optimal performance from day one.",
-  },
-  {
-    id: "monitoring",
-    number: "04",
-    title: "Monitoring and Optimization",
-    content:
-      "We continuously track key performance indicators and analyze campaign data in real-time. Our team makes data-driven adjustments to optimize performance, maximize ROI, and ensure your marketing efforts are always improving.",
-  },
-  {
-    id: "reporting",
-    number: "05",
-    title: "Reporting and Communication",
-    content:
-      "Receive detailed reports on campaign performance with clear insights and actionable recommendations. We maintain open lines of communication with regular check-ins to discuss progress and address any questions or concerns.",
-  },
-  {
-    id: "improvement",
-    number: "06",
-    title: "Continual Improvement",
-    content:
-      "Marketing is an ongoing process. We continuously refine strategies based on results and changing market conditions. Our commitment to continual improvement ensures your marketing stays ahead of the competition.",
-  },
-];
+type WorkingProcess =
+  | {
+      id: string;
+      step_no: number;
+      title: string | null;
+      description: string | null;
+      is_active: boolean;
+    }[]
+  | null;
 
-export default function Process() {
+export default function Process({ processes }: { processes: WorkingProcess }) {
   return (
     <section
       className="flex flex-col items-center justify-center"
@@ -71,14 +35,14 @@ export default function Process() {
       </div>
 
       <Accordion mode="single" defaultOpen="consultation" className="w-full">
-        {processSteps.map((step) => (
+        {processes?.map((proccess) => (
           <AccordionItem
-            key={step.id}
-            id={step.id}
-            number={step.number}
-            title={step.title}
+            key={proccess.id}
+            id={proccess.id}
+            number={proccess.step_no.toString()}
+            title={proccess.title ?? ""}
           >
-            <AccordionContent>{step.content}</AccordionContent>
+            <AccordionContent>{proccess.description ?? ""}</AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
