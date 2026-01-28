@@ -56,7 +56,7 @@ export default async function Home() {
       <Hero />
       <Services services={services} />
       <CallToAction />
-      <CaseStudies />
+      <CaseStudies caseStudies={caseStudies} />
       <Process />
       <Team />
       <Testimonials />
