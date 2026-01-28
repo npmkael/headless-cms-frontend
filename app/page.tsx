@@ -4,6 +4,7 @@ import Services from "@/components/sections/services";
 import CallToAction from "@/components/sections/call-to-action";
 import CaseStudies from "@/components/sections/case-studies";
 import Process from "@/components/sections/process";
+import Team from "@/components/sections/team";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
       <CallToAction />
       <CaseStudies />
       <Process />
+      <Team />
     </main>
   );
 }
