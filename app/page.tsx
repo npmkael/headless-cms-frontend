@@ -2,6 +2,7 @@
 import Hero from "@/components/sections/hero";
 import Services from "@/components/sections/services";
 import CallToAction from "@/components/sections/call-to-action";
+import CaseStudies from "@/components/sections/case-studies";
 
 export default function Home() {
   return (
@@ -9,6 +10,7 @@ export default function Home() {
       <Hero />
       <Services />
       <CallToAction />
+      <CaseStudies />
     </main>
   );
 }
