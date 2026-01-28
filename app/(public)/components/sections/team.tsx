@@ -2,7 +2,18 @@
 
 import TeamGrid from "../ui/team-grid";
 
-export default function Team() {
+type TeamMember =
+  | {
+      id: string;
+      name: string | null;
+      role: string | null;
+      avatar_url: string | null;
+      socials_json: string | null;
+      is_active: boolean;
+    }[]
+  | null;
+
+export default function Team({ teamMembers }: { teamMembers: TeamMember }) {
   //  TODO: Add the image of the team with the flower shape
   return (
     <section
@@ -22,7 +33,7 @@ export default function Team() {
         </p>
       </div>
 
-      <TeamGrid />
+      <TeamGrid teamMembers={teamMembers} />
 
       <div className="w-full flex justify-end">
         <button className="px-16 py-4 bg-black text-white rounded-xl transition-colors w-fit cursor-pointer">

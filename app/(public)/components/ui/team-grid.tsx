@@ -6,70 +6,13 @@ import Link from "next/link";
 import { Linkedin } from "lucide-react";
 
 interface TeamMember {
-  id: number;
-  name: string;
-  role: string;
-  experience: string;
-  image: string;
-  linkedIn?: string;
+  id: string;
+  name: string | null;
+  role: string | null;
+  avatar_url: string | null;
+  socials_json: string | null;
+  is_active: boolean;
 }
-
-const teamMembers: TeamMember[] = [
-  {
-    id: 1,
-    name: "John Smith",
-    role: "CEO and Founder",
-    experience:
-      "10+ years of experience in digital marketing. Expertise in SEO, PPC, and content strategy",
-    image: "/team/john-smith.jpg",
-    linkedIn: "https://linkedin.com",
-  },
-  {
-    id: 2,
-    name: "Jane Doe",
-    role: "Director of Operations",
-    experience:
-      "7+ years of experience in project management and team leadership. Strong organizational and communication skills",
-    image: "/team/jane-doe.jpg",
-    linkedIn: "https://linkedin.com",
-  },
-  {
-    id: 3,
-    name: "Michael Brown",
-    role: "Senior SEO Specialist",
-    experience:
-      "5+ years of experience in SEO and content creation. Proficient in keyword research and on-page optimization",
-    image: "/team/michael-brown.jpg",
-    linkedIn: "https://linkedin.com",
-  },
-  {
-    id: 4,
-    name: "Emily Johnson",
-    role: "PPC Manager",
-    experience:
-      "3+ years of experience in paid search advertising. Skilled in campaign management and performance analysis",
-    image: "/team/emily-johnson.jpg",
-    linkedIn: "https://linkedin.com",
-  },
-  {
-    id: 5,
-    name: "Brian Williams",
-    role: "Social Media Specialist",
-    experience:
-      "4+ years of experience in social media marketing. Proficient in creating and scheduling content, analyzing metrics, and building engagement",
-    image: "/team/brian-williams.jpg",
-    linkedIn: "https://linkedin.com",
-  },
-  {
-    id: 6,
-    name: "Sarah Kim",
-    role: "Content Creator",
-    experience:
-      "2+ years of experience in writing and editing. Skilled in creating compelling, SEO-optimized content for various industries",
-    image: "/team/sarah-kim.jpg",
-    linkedIn: "https://linkedin.com",
-  },
-];
 
 // Animation variants
 const containerVariants = {
@@ -103,10 +46,10 @@ const cardVariants = {
 
 interface TeamCardProps {
   member: TeamMember;
-  index: number;
+  id: string;
 }
 
-function TeamCard({ member, index }: TeamCardProps) {
+function TeamCard({ member, id }: TeamCardProps) {
   return (
     <motion.div
       variants={cardVariants}
@@ -144,10 +87,10 @@ function TeamCard({ member, index }: TeamCardProps) {
         </div>
 
         {/* LinkedIn Icon */}
-        {member.linkedIn && (
+        {member.socials_json && (
           <div className="shrink-0 place-items-start h-full">
             <Link
-              href={member.linkedIn}
+              href={JSON.parse(member.socials_json).linkedin}
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors "
@@ -164,13 +107,18 @@ function TeamCard({ member, index }: TeamCardProps) {
 
       {/* Experience/Description */}
       <p className="text-sm text-muted-foreground leading-relaxed">
-        {member.experience}
+        Lorem ipsum dolor sit amet consectetur adipisicing elit. Labore optio
+        minima quo ea delectum.
       </p>
     </motion.div>
   );
 }
 
-export default function TeamGrid() {
+export default function TeamGrid({
+  teamMembers,
+}: {
+  teamMembers: TeamMember[] | null;
+}) {
   return (
     <motion.div
       variants={containerVariants}
@@ -179,9 +127,15 @@ export default function TeamGrid() {
       viewport={{ once: true, margin: "-100px" }}
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 w-full mb-8"
     >
-      {teamMembers.map((member, index) => (
-        <TeamCard key={member.id} member={member} index={index} />
-      ))}
+      {teamMembers ? (
+        teamMembers.map((member, index) => (
+          <TeamCard key={member.id} member={member} id={member.id} />
+        ))
+      ) : (
+        <div>
+          <p>No team members found</p>
+        </div>
+      )}
     </motion.div>
   );
 }
