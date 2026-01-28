@@ -5,6 +5,7 @@ import CallToAction from "@/components/sections/call-to-action";
 import CaseStudies from "@/components/sections/case-studies";
 import Process from "@/components/sections/process";
 import Team from "@/components/sections/team";
+import Testimonials from "@/components/sections/testimonials";
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
       <CaseStudies />
       <Process />
       <Team />
+      <Testimonials />
     </main>
   );
 }

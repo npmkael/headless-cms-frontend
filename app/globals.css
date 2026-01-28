@@ -45,4 +45,8 @@ body {
       50% 30%
     );
   }
+
+  .triangle {
+    clip-path: polygon(0 0, 50% 75%, 100% 0);
+  }
 }
