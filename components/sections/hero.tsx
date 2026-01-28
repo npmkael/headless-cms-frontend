@@ -23,6 +23,9 @@ export default function Hero() {
             online through a range of services including SEO, PPC, social media
             marketing, and content creation.
           </p>
+          <button className="px-8 py-4 bg-black text-white rounded-xl transition-colors w-fit cursor-pointer">
+            Book a consultation
+          </button>
         </div>
         <div className="w-full md:w-auto md:flex-1 max-w-[400px] md:max-w-none">
           <Image
