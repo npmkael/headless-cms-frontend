@@ -3,10 +3,9 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 
 interface ServiceCardProps {
+  id: string;
   title: string;
-  titleHighlight?: string;
-  illustration?: string;
-  href?: string;
+  description: string | null;
   variant?: "light" | "dark" | "green";
 }
 
@@ -41,10 +40,9 @@ const variants = {
 };
 
 export default function ServiceCard({
+  id,
   title,
-  titleHighlight,
-  illustration,
-  href = "#",
+  description,
   variant = "light",
 }: ServiceCardProps) {
   const theme = variants[variant];
@@ -61,7 +59,7 @@ export default function ServiceCard({
             <span
               className={`${theme.titleBg} px-2 py-1 rounded-md inline-block`}
             >
-              {titleHighlight || title.split(" ")[0]}
+              {title.split(" ")[0]}
             </span>
             <br />
             <span
@@ -73,7 +71,7 @@ export default function ServiceCard({
         </div>
 
         <Link
-          href={href}
+          href=""
           className="inline-flex items-center gap-2 md:gap-3 mt-6 md:mt-8 group w-fit"
         >
           <div
@@ -91,7 +89,7 @@ export default function ServiceCard({
         </Link>
       </div>
 
-      <div className="flex items-center justify-center md:justify-end flex-shrink-0">
+      {/* <div className="flex items-center justify-center md:justify-end flex-shrink-0">
         {illustration && (
           <Image
             src={illustration}
@@ -101,7 +99,7 @@ export default function ServiceCard({
             className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain"
           />
         )}
-      </div>
+      </div> */}
     </div>
   );
 }

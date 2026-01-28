@@ -8,11 +8,53 @@ import Testimonials from "@/app/(public)/components/sections/testimonials";
 import ContactUs from "@/app/(public)/components/sections/contact-us";
 import Footer from "@/app/(public)/components/sections/footer";
 
-export default function Home() {
+import { createClient } from "@/lib/supabase/server";
+
+// TODO: Add error handling
+// TODO: Add loading state
+// TODO: pass states to the other sections
+
+export default async function Home() {
+  const supabase = await createClient();
+
+  const [
+    { data: services },
+    { data: caseStudies },
+    { data: processes },
+    { data: teamMembers },
+    { data: testimonials },
+  ] = await Promise.all([
+    supabase
+      .from("services")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("case_studies")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("working_processes")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("team_members")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order"),
+    supabase
+      .from("testimonials")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order"),
+  ]);
+
   return (
     <>
       <Hero />
-      <Services />
+      <Services services={services} />
       <CallToAction />
       <CaseStudies />
       <Process />
