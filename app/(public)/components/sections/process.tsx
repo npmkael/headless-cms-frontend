@@ -4,7 +4,7 @@ import {
   Accordion,
   AccordionItem,
   AccordionContent,
-} from "@/components/ui/accordion";
+} from "@/app/(public)/components/ui/accordion";
 
 // Process steps data
 const processSteps = [
