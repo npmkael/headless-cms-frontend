@@ -1,6 +1,10 @@
 "use client";
 
-import { Accordion, AccordionItem, AccordionContent } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 // Process steps data
 const processSteps = [
@@ -50,29 +54,25 @@ const processSteps = [
 
 export default function Process() {
   return (
-    <section 
+    <section
       className="flex flex-col items-center justify-center"
       aria-labelledby="process-heading"
     >
       {/* Section Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-8 w-full mb-10 md:mb-14">
-        <h2 
+        <h2
           id="process-heading"
           className="bg-main rounded-md px-4 py-2 text-2xl md:text-3xl lg:text-4xl font-semibold whitespace-nowrap"
         >
           Our Working Process
         </h2>
-        <p className="text-base md:text-lg text-black/70 max-w-sm">
+        <p className="text-base md:text-lg max-w-sm">
           Step-by-Step Guide to Achieving Your Business Goals
         </p>
       </div>
 
       {/* Accordion */}
-      <Accordion 
-        mode="single" 
-        defaultOpen="consultation"
-        className="w-full"
-      >
+      <Accordion mode="single" defaultOpen="consultation" className="w-full">
         {processSteps.map((step) => (
           <AccordionItem
             key={step.id}
@@ -80,9 +80,7 @@ export default function Process() {
             number={step.number}
             title={step.title}
           >
-            <AccordionContent>
-              {step.content}
-            </AccordionContent>
+            <AccordionContent>{step.content}</AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>
