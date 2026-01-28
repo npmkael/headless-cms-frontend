@@ -16,7 +16,11 @@ type WorkingProcess =
     }[]
   | null;
 
-export default function Process({ processes }: { processes: WorkingProcess }) {
+export default function Process({
+  workingProcesses,
+}: {
+  workingProcesses: WorkingProcess;
+}) {
   return (
     <section
       className="flex flex-col items-center justify-center"
@@ -35,16 +39,27 @@ export default function Process({ processes }: { processes: WorkingProcess }) {
       </div>
 
       <Accordion mode="single" defaultOpen="consultation" className="w-full">
-        {processes?.map((proccess) => (
-          <AccordionItem
-            key={proccess.id}
-            id={proccess.id}
-            number={proccess.step_no.toString()}
-            title={proccess.title ?? ""}
-          >
-            <AccordionContent>{proccess.description ?? ""}</AccordionContent>
-          </AccordionItem>
-        ))}
+        {workingProcesses ? (
+          workingProcesses.map(
+            (proccess) =>
+              proccess.is_active && (
+                <AccordionItem
+                  key={proccess.id}
+                  id={proccess.id}
+                  number={proccess.step_no.toString()}
+                  title={proccess.title ?? ""}
+                >
+                  <AccordionContent>
+                    {proccess.description ?? ""}
+                  </AccordionContent>
+                </AccordionItem>
+              )
+          )
+        ) : (
+          <div>
+            <p>No processes found</p>
+          </div>
+        )}
       </Accordion>
     </section>
   );

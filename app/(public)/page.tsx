@@ -20,7 +20,7 @@ export default async function Home() {
   const [
     { data: services },
     { data: caseStudies },
-    { data: processes },
+    { data: workingProcesses },
     { data: teamMembers },
     { data: testimonials },
   ] = await Promise.all([
@@ -57,7 +57,7 @@ export default async function Home() {
       <Services services={services} />
       <CallToAction />
       <CaseStudies caseStudies={caseStudies} />
-      <Process processes={processes} />
+      <Process workingProcesses={workingProcesses} />
       <Team />
       <Testimonials />
       <ContactUs />
