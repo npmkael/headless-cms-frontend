@@ -12,6 +12,7 @@
   --font-mono: var(--font-geist-mono);
   --color-black: #191a23;
   --color-main: #b9ff66;
+  --color-gray: #f3f3f3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -22,7 +23,7 @@
 }
 
 body {
-  background: #fff;
+  background: #ffffff;
   color: var(--color-black);
   font-family: var(--font-space-grotesk);
 }

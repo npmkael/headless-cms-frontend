@@ -39,7 +39,7 @@ export default function CaseStudies() {
               key={caseStudy.href}
               className={`flex flex-col justify-between gap-6 ${
                 index !== caseStudies.length - 1
-                  ? "md:border-r md:border-white/30 md:pr-8 lg:pr-12"
+                  ? "md:border-r md:border-white md:pr-8 lg:pr-12"
                   : ""
               } ${index !== 0 ? "md:pl-8 lg:pl-12" : ""}`}
             >
