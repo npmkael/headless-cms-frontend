@@ -11,8 +11,6 @@ type Service =
 const variants = ["light", "green", "dark"] as const;
 
 export default function Services({ services }: { services: Service }) {
-  // TODO: Add illustration automatically (?)
-
   return (
     <section className="flex flex-col items-center justify-center px-4 md:px-8 xl:px-0">
       <div className="flex flex-col md:flex-row items-start md:items-center gap-8 w-full mb-12">
