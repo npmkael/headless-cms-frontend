@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { MenuIcon, XIcon } from "lucide-react";
 import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 
 const links = [
   {
@@ -27,10 +28,6 @@ const links = [
     href: "#blog",
   },
 ];
-
-// TODO: Mobile
-// TODO: Make background blurry
-// TODO: Add animations to the links
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,36 +81,44 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {isOpen && (
-        <div className="fixed top-[70px] inset-0 z-30 bg-white/20 backdrop-blur-sm px-4 block lg:hidden">
-          <div className="bg-white rounded-3xl border border-black w-full mt-8 p-8 shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
-            <ul className="flex flex-col gap-6">
-              {links.map((link) => (
-                <li key={link.href} className="group">
-                  <Link
-                    href={link.href}
-                    className="flex items-center gap-3 text-lg hover:text-gray-700 transition-colors"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-black opacity-0 group-hover:opacity-100 transition-opacity" />
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -100 }}
+            exit={{ opacity: 0, y: -100 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-[70px] inset-0 z-30 bg-white/20 backdrop-blur-sm px-4 block lg:hidden"
+          >
+            <div className="bg-white rounded-3xl border border-black w-full mt-8 p-8 shadow-[0px_4px_0px_0px_rgba(0,0,0,1)]">
+              <ul className="flex flex-col gap-6">
+                {links.map((link) => (
+                  <li key={link.href} className="group">
+                    <Link
+                      href={link.href}
+                      className="flex items-center gap-3 text-lg hover:text-gray-700 transition-colors"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-black opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
 
-            <div className="mt-8 pt-6 border-t">
-              <Link
-                href="#quote"
-                className="block text-center px-8 py-4 border border-black rounded-xl hover:bg-black hover:text-white transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                Request a quote
-              </Link>
+              <div className="mt-8 pt-6 border-t">
+                <Link
+                  href="#quote"
+                  className="block text-center px-8 py-4 border border-black rounded-xl hover:bg-black hover:text-white transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Request a quote
+                </Link>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
