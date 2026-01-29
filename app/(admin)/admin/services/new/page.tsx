@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,148 +13,56 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import type { TablesInsert } from "@/lib/database.types";
 
-// Form data type for controlled inputs
-interface FormData {
-  title: string;
-  description: string;
-  icon_url: string;
-  sort_order: number;
-  is_active: boolean;
-}
+// Zod schema for form validation
+const serviceSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(100, "Title must be less than 100 characters"),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(500, "Description must be less than 500 characters"),
+  icon_url: z.string().optional(),
+  sort_order: z.coerce.number().min(0, "Sort order must be 0 or greater"),
+  is_active: z.boolean(),
+});
 
-interface FormErrors {
-  title?: string;
-  description?: string;
-  sort_order?: string;
-}
-
-// Type for Supabase insert
-type ServiceInsert = TablesInsert<"services">;
+type ServiceFormData = z.infer<typeof serviceSchema>;
 
 export default function NewServicePage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    title: "",
-    description: "",
-    icon_url: "",
-    sort_order: 0,
-    is_active: true,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-
   const supabase = createClient();
 
-  const validateField = (
-    name: keyof FormData,
-    value: string | number | boolean
-  ): string | undefined => {
-    switch (name) {
-      case "title":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Title is required";
-        }
-        if (typeof value === "string" && value.length > 100) {
-          return "Title must be less than 100 characters";
-        }
-        break;
-      case "description":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Description is required";
-        }
-        if (typeof value === "string" && value.length > 500) {
-          return "Description must be less than 500 characters";
-        }
-        break;
-      case "sort_order":
-        if (typeof value === "number" && value < 0) {
-          return "Sort order must be 0 or greater";
-        }
-        break;
-    }
-    return undefined;
-  };
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm({
+    resolver: zodResolver(serviceSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      icon_url: "",
+      sort_order: 0,
+      is_active: true,
+    },
+    mode: "onBlur",
+  });
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {
-      title: validateField("title", formData.title),
-      description: validateField("description", formData.description),
-      sort_order: validateField("sort_order", formData.sort_order),
-    };
+  const isActive = watch("is_active");
 
-    setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== undefined);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const newValue = type === "number" ? parseInt(value) || 0 : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Validate on change if field has been touched
-    if (touched[name]) {
-      const error = validateField(name as keyof FormData, newValue);
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }));
-    }
-  };
-
-  const handleBlur = (name: string) => {
-    setTouched((prev) => ({
-      ...prev,
-      [name]: true,
-    }));
-
-    const value = formData[name as keyof FormData];
-    const error = validateField(name as keyof FormData, value);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      is_active: checked,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Mark all fields as touched
-    setTouched({
-      title: true,
-      description: true,
-      sort_order: true,
-    });
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: ServiceFormData) => {
     try {
       const { error } = await supabase.from("services").insert({
-        title: formData.title,
-        description: formData.description,
-        icon_url: formData.icon_url || null,
-        sort_order: formData.sort_order,
-        is_active: formData.is_active,
+        title: data.title,
+        description: data.description,
+        icon_url: data.icon_url || null,
+        sort_order: data.sort_order,
+        is_active: data.is_active,
       });
 
       if (error) {
@@ -166,13 +76,8 @@ export default function NewServicePage() {
     } catch (error) {
       console.error("Error creating service:", error);
       toast.error("Failed to create service. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const isFormValid =
-    formData.title.trim() !== "" && formData.description.trim() !== "";
 
   return (
     <div className="px-4 lg:px-6">
@@ -194,7 +99,7 @@ export default function NewServicePage() {
       {/* Form Card */}
       <div className="mx-auto max-w-2xl">
         <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Title Field */}
             <div className="space-y-2">
               <Label
@@ -205,11 +110,7 @@ export default function NewServicePage() {
               </Label>
               <Input
                 id="title"
-                name="title"
                 type="text"
-                value={formData.title}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("title")}
                 placeholder="e.g., Web Development"
                 disabled={isSubmitting}
                 aria-required="true"
@@ -220,10 +121,11 @@ export default function NewServicePage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("title")}
               />
               {errors.title && (
                 <p id="title-error" className="text-sm text-red-500">
-                  {errors.title}
+                  {errors.title.message}
                 </p>
               )}
             </div>
@@ -238,10 +140,6 @@ export default function NewServicePage() {
               </Label>
               <Textarea
                 id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("description")}
                 placeholder="Describe your service in detail..."
                 rows={5}
                 disabled={isSubmitting}
@@ -255,10 +153,11 @@ export default function NewServicePage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("description")}
               />
               {errors.description && (
                 <p id="description-error" className="text-sm text-red-500">
-                  {errors.description}
+                  {errors.description.message}
                 </p>
               )}
             </div>
@@ -273,13 +172,11 @@ export default function NewServicePage() {
               </Label>
               <Input
                 id="icon_url"
-                name="icon_url"
                 type="text"
-                value={formData.icon_url}
-                onChange={handleInputChange}
                 placeholder="https://example.com/icon.png"
                 disabled={isSubmitting}
                 className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+                {...register("icon_url")}
               />
               <p className="text-sm text-gray-500">
                 Optional: URL to service icon/image
@@ -296,11 +193,7 @@ export default function NewServicePage() {
               </Label>
               <Input
                 id="sort_order"
-                name="sort_order"
                 type="number"
-                value={formData.sort_order}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("sort_order")}
                 min={0}
                 disabled={isSubmitting}
                 aria-required="true"
@@ -311,9 +204,12 @@ export default function NewServicePage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("sort_order")}
               />
               {errors.sort_order ? (
-                <p className="text-sm text-red-500">{errors.sort_order}</p>
+                <p className="text-sm text-red-500">
+                  {errors.sort_order.message}
+                </p>
               ) : (
                 <p id="sort_order-helper" className="text-sm text-gray-500">
                   Lower numbers appear first
@@ -329,8 +225,10 @@ export default function NewServicePage() {
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={handleCheckboxChange}
+                  checked={isActive}
+                  onCheckedChange={(checked) =>
+                    setValue("is_active", checked === true)
+                  }
                   disabled={isSubmitting}
                   className="mt-0.5 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                 />
@@ -361,7 +259,7 @@ export default function NewServicePage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !isFormValid}
+                disabled={isSubmitting || !isValid}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
               >
                 {isSubmitting ? (
