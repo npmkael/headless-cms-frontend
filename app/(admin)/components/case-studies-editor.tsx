@@ -10,6 +10,7 @@ import {
   Check,
   X,
   ChevronLeft,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +32,7 @@ import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
 
 // Types
-export type Service = Tables<"services">;
+export type CaseStudy = Tables<"case_studies">;
 
 function formatTimeAgo(date: string | null): string {
   if (!date) return "";
@@ -48,14 +49,15 @@ function formatTimeAgo(date: string | null): string {
   return `${diffDays}d ago`;
 }
 
-export function ServicesEditor({
-  initialServices,
+export function CaseStudiesEditor({
+  initialCaseStudies,
 }: {
-  initialServices: Service[];
+  initialCaseStudies: CaseStudy[];
 }) {
-  const [services, setServices] = useState<Service[]>(initialServices);
+  const [caseStudies, setCaseStudies] =
+    useState<CaseStudy[]>(initialCaseStudies);
   const [selectedId, setSelectedId] = useState<string | null>(
-    initialServices[0]?.id || null
+    initialCaseStudies[0]?.id || null
   );
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -63,24 +65,23 @@ export function ServicesEditor({
   const [previousSelectedId, setPreviousSelectedId] = useState<string | null>(
     null
   );
-  const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CaseStudy | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [imageError, setImageError] = useState(false);
   const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
 
-  // Form state for selected service
-  const [formData, setFormData] = useState<Partial<Service>>({});
+  // Form state for selected case study
+  const [formData, setFormData] = useState<Partial<CaseStudy>>({});
 
-  const selectedService = services.find((s) => s.id === selectedId);
+  const selectedCaseStudy = caseStudies.find((s) => s.id === selectedId);
 
-  // Map services to sidebar items
-  const sidebarItems: CrudSidebarItem[] = services.map((service) => ({
-    id: service.id,
-    title: service.title,
-    description: service.description,
-    imageUrl: service.icon_url,
-    isActive: service.is_active,
+  // Map case studies to sidebar items
+  const sidebarItems: CrudSidebarItem[] = caseStudies.map((caseStudy) => ({
+    id: caseStudy.id,
+    title: caseStudy.title,
+    description: caseStudy.short_description,
+    imageUrl: caseStudy.cover_image_url,
+    isActive: caseStudy.is_active,
   }));
 
   // Load form data when selection changes
@@ -89,21 +90,21 @@ export function ServicesEditor({
       // Don't update form data when in create or edit mode
       return;
     }
-    if (selectedService) {
+    if (selectedCaseStudy) {
       setFormData({
-        title: selectedService.title,
-        description: selectedService.description,
-        icon_url: selectedService.icon_url,
-        sort_order: selectedService.sort_order,
-        is_active: selectedService.is_active,
+        title: selectedCaseStudy.title,
+        short_description: selectedCaseStudy.short_description,
+        cover_image_url: selectedCaseStudy.cover_image_url,
+        link_url: selectedCaseStudy.link_url,
+        sort_order: selectedCaseStudy.sort_order,
+        is_active: selectedCaseStudy.is_active,
       });
-      setImageError(false);
     }
-  }, [selectedId, selectedService, isCreateMode, isEditMode]);
+  }, [selectedId, selectedCaseStudy, isCreateMode, isEditMode]);
 
   // Handle form field changes (only allowed in edit or create mode)
   const handleFieldChange = (
-    field: keyof Service,
+    field: keyof CaseStudy,
     value: string | number | boolean | null
   ) => {
     if (!isEditMode && !isCreateMode) return;
@@ -115,7 +116,7 @@ export function ServicesEditor({
     setIsEditMode(true);
   };
 
-  // Save edits to existing service
+  // Save edits to existing case study
   const handleSaveEdit = async () => {
     if (!selectedId) return;
 
@@ -123,8 +124,8 @@ export function ServicesEditor({
       toast.error("Title is required");
       return;
     }
-    if (!formData.description?.trim()) {
-      toast.error("Description is required");
+    if (!formData.short_description?.trim()) {
+      toast.error("Short description is required");
       return;
     }
 
@@ -132,11 +133,12 @@ export function ServicesEditor({
     const supabase = createClient();
 
     const { error } = await supabase
-      .from("services")
+      .from("case_studies")
       .update({
         title: formData.title.trim(),
-        description: formData.description.trim(),
-        icon_url: formData.icon_url || null,
+        short_description: formData.short_description.trim(),
+        cover_image_url: formData.cover_image_url || null,
+        link_url: formData.link_url || null,
         sort_order: formData.sort_order ?? 0,
         is_active: formData.is_active ?? false,
         updated_at: new Date().toISOString(),
@@ -148,14 +150,15 @@ export function ServicesEditor({
       toast.error("Failed to save changes");
     } else {
       // Update local state
-      setServices((prev) =>
+      setCaseStudies((prev) =>
         prev.map((s) =>
           s.id === selectedId
             ? {
                 ...s,
                 title: formData.title!.trim(),
-                description: formData.description!.trim(),
-                icon_url: formData.icon_url || null,
+                short_description: formData.short_description!.trim(),
+                cover_image_url: formData.cover_image_url || null,
+                link_url: formData.link_url || null,
                 sort_order: formData.sort_order ?? 0,
                 is_active: formData.is_active ?? false,
                 updated_at: new Date().toISOString(),
@@ -173,70 +176,72 @@ export function ServicesEditor({
   // Cancel edit mode
   const handleCancelEdit = () => {
     // Restore original data
-    if (selectedService) {
+    if (selectedCaseStudy) {
       setFormData({
-        title: selectedService.title,
-        description: selectedService.description,
-        icon_url: selectedService.icon_url,
-        sort_order: selectedService.sort_order,
-        is_active: selectedService.is_active,
+        title: selectedCaseStudy.title,
+        short_description: selectedCaseStudy.short_description,
+        cover_image_url: selectedCaseStudy.cover_image_url,
+        link_url: selectedCaseStudy.link_url,
+        sort_order: selectedCaseStudy.sort_order,
+        is_active: selectedCaseStudy.is_active,
       });
     }
     setIsEditMode(false);
   };
 
-  // Enter create mode for new service
+  // Enter create mode for new case study
   const handleCreateNew = () => {
     setPreviousSelectedId(selectedId);
     setSelectedId(null);
     setIsCreateMode(true);
     setFormData({
       title: "",
-      description: "",
-      icon_url: null,
-      sort_order: services.length,
+      short_description: "",
+      cover_image_url: null,
+      link_url: null,
+      sort_order: caseStudies.length,
       is_active: false,
     });
-    setImageError(false);
   };
 
-  // Save new service to database
+  // Save new case study to database
   const handleSaveNew = async () => {
     if (!formData.title?.trim()) {
       toast.error("Title is required");
       return;
     }
-    if (!formData.description?.trim()) {
-      toast.error("Description is required");
+    if (!formData.short_description?.trim()) {
+      toast.error("Short description is required");
       return;
     }
 
     setIsSaving(true);
     const supabase = createClient();
 
-    const newService = {
+    const newCaseStudy = {
       title: formData.title.trim(),
-      description: formData.description.trim(),
-      icon_url: formData.icon_url || null,
-      sort_order: formData.sort_order ?? services.length,
+      short_description: formData.short_description.trim(),
+      cover_image_url: formData.cover_image_url || null,
+      link_url: formData.link_url || null,
+      sort_order: formData.sort_order ?? caseStudies.length,
       is_active: formData.is_active ?? false,
     };
 
     const { data, error } = await supabase
-      .from("services")
-      .insert(newService)
+      .from("case_studies")
+      .insert(newCaseStudy)
       .select()
       .single();
 
     if (error) {
       console.error(error);
-      toast.error("Failed to create service");
+      toast.error("Failed to create case study");
     } else if (data) {
-      setServices((prev) => [...prev, data]);
+      setCaseStudies((prev) => [...prev, data]);
       setSelectedId(data.id);
       setIsCreateMode(false);
       setPreviousSelectedId(null);
-      toast.success("Service created successfully");
+      toast.success("Case study created successfully");
     }
 
     setIsSaving(false);
@@ -245,14 +250,14 @@ export function ServicesEditor({
   // Cancel create mode
   const handleCancelCreate = () => {
     setIsCreateMode(false);
-    setSelectedId(previousSelectedId || services[0]?.id || null);
+    setSelectedId(previousSelectedId || caseStudies[0]?.id || null);
     setPreviousSelectedId(null);
     setFormData({});
   };
 
-  // Delete service
-  const handleDelete = (service: Service) => {
-    setDeleteTarget(service);
+  // Delete case study
+  const handleDelete = (caseStudy: CaseStudy) => {
+    setDeleteTarget(caseStudy);
     setIsDeleteDialogOpen(true);
   };
 
@@ -263,23 +268,25 @@ export function ServicesEditor({
     const supabase = createClient();
 
     const { error } = await supabase
-      .from("services")
+      .from("case_studies")
       .delete()
       .eq("id", deleteTarget.id);
 
     if (error) {
       console.error(error);
-      toast.error("Failed to delete service");
+      toast.error("Failed to delete case study");
     } else {
-      const updatedServices = services.filter((s) => s.id !== deleteTarget.id);
-      setServices(updatedServices);
+      const updatedCaseStudies = caseStudies.filter(
+        (s) => s.id !== deleteTarget.id
+      );
+      setCaseStudies(updatedCaseStudies);
 
-      // Select another service if we deleted the currently selected one
+      // Select another case study if we deleted the currently selected one
       if (selectedId === deleteTarget.id) {
-        setSelectedId(updatedServices[0]?.id || null);
+        setSelectedId(updatedCaseStudies[0]?.id || null);
       }
 
-      toast.success("Service deleted successfully");
+      toast.success("Case study deleted successfully");
     }
 
     setIsDeleting(false);
@@ -292,10 +299,10 @@ export function ServicesEditor({
     setDeleteTarget(null);
   };
 
-  // Handle selecting a service on mobile
-  const handleSelectService = (serviceId: string) => {
+  // Handle selecting a case study on mobile
+  const handleSelectCaseStudy = (caseStudyId: string) => {
     if (isCreateMode) {
-      if (formData.title || formData.description) {
+      if (formData.title || formData.short_description) {
         if (!confirm("Discard unsaved changes?")) return;
       }
       setIsCreateMode(false);
@@ -307,14 +314,14 @@ export function ServicesEditor({
       setIsEditMode(false);
     }
 
-    setSelectedId(serviceId);
+    setSelectedId(caseStudyId);
     setShowDetailOnMobile(true);
   };
 
   // Handle back button on mobile
   const handleBackToList = () => {
     if (isCreateMode) {
-      if (formData.title || formData.description) {
+      if (formData.title || formData.short_description) {
         if (!confirm("Discard unsaved changes?")) return;
       }
       handleCancelCreate();
@@ -336,23 +343,23 @@ export function ServicesEditor({
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden bg-white">
-      {/* Left Sidebar - Service List */}
+      {/* Left Sidebar - Case Study List */}
       <CrudSidebar
-        title="Services"
-        searchPlaceholder="Search services..."
-        emptyText="No services found"
-        newItemTitle="New Service"
+        title="Case Studies"
+        searchPlaceholder="Search case studies..."
+        emptyText="No case studies found"
+        newItemTitle="New Case Study"
         newItemDescription="Enter description..."
         items={sidebarItems}
         selectedId={selectedId}
         isCreateMode={isCreateMode}
         showDetailOnMobile={showDetailOnMobile}
         formTitle={formData.title || ""}
-        formDescription={formData.description || ""}
-        onSelectItem={handleSelectService}
+        formDescription={formData.short_description || ""}
+        onSelectItem={handleSelectCaseStudy}
         onCreateNew={handleCreateNewMobile}
         renderFallbackIcon={() => (
-          <FileText className="h-5 w-5 text-gray-400" />
+          <ImageIcon className="h-5 w-5 text-gray-400" />
         )}
       />
 
@@ -362,7 +369,7 @@ export function ServicesEditor({
           showDetailOnMobile ? "flex" : "hidden md:flex"
         }`}
       >
-        {selectedService || isCreateMode ? (
+        {selectedCaseStudy || isCreateMode ? (
           <>
             {/* Header with title and status */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
@@ -378,8 +385,8 @@ export function ServicesEditor({
                 </Button>
                 <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                   {isCreateMode
-                    ? formData.title || "New Service"
-                    : formData.title || selectedService?.title}
+                    ? formData.title || "New Case Study"
+                    : formData.title || selectedCaseStudy?.title}
                 </h1>
                 {isCreateMode ? (
                   <Badge
@@ -479,7 +486,7 @@ export function ServicesEditor({
                       size="sm"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
                       onClick={() =>
-                        selectedService && handleDelete(selectedService)
+                        selectedCaseStudy && handleDelete(selectedCaseStudy)
                       }
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
@@ -508,32 +515,82 @@ export function ServicesEditor({
                     className={`h-10 ${
                       !isEditMode && !isCreateMode ? "bg-gray-50" : ""
                     }`}
-                    placeholder="Enter service title"
+                    placeholder="Enter case study title"
                     disabled={!isEditMode && !isCreateMode}
                   />
                 </div>
 
-                {/* Description Field */}
+                {/* Short Description Field */}
                 <div className="space-y-2">
                   <Label
-                    htmlFor="description"
+                    htmlFor="short_description"
                     className="text-sm font-medium text-gray-700"
                   >
-                    Description
+                    Short Description
                   </Label>
                   <Textarea
-                    id="description"
-                    value={formData.description || ""}
+                    id="short_description"
+                    value={formData.short_description || ""}
                     onChange={(e) =>
-                      handleFieldChange("description", e.target.value)
+                      handleFieldChange("short_description", e.target.value)
                     }
-                    rows={4}
-                    placeholder="Enter service description"
+                    rows={3}
+                    placeholder="Enter a brief description"
                     className={`resize-none ${
                       !isEditMode && !isCreateMode ? "bg-gray-50" : ""
                     }`}
                     disabled={!isEditMode && !isCreateMode}
                   />
+                </div>
+
+                {/* Cover Image URL Field */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="cover_image_url"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Cover Image URL
+                  </Label>
+                  <Input
+                    id="cover_image_url"
+                    value={formData.cover_image_url || ""}
+                    onChange={(e) =>
+                      handleFieldChange("cover_image_url", e.target.value)
+                    }
+                    className={`h-10 ${
+                      !isEditMode && !isCreateMode ? "bg-gray-50" : ""
+                    }`}
+                    placeholder="https://example.com/image.jpg"
+                    disabled={!isEditMode && !isCreateMode}
+                  />
+                  <p className="text-xs text-gray-500">
+                    URL to the cover image for this case study
+                  </p>
+                </div>
+
+                {/* Link URL Field */}
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="link_url"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Link URL
+                  </Label>
+                  <Input
+                    id="link_url"
+                    value={formData.link_url || ""}
+                    onChange={(e) =>
+                      handleFieldChange("link_url", e.target.value)
+                    }
+                    className={`h-10 ${
+                      !isEditMode && !isCreateMode ? "bg-gray-50" : ""
+                    }`}
+                    placeholder="https://example.com/case-study"
+                    disabled={!isEditMode && !isCreateMode}
+                  />
+                  <p className="text-xs text-gray-500">
+                    External link to the full case study
+                  </p>
                 </div>
 
                 {/* Sort Order */}
@@ -587,21 +644,21 @@ export function ServicesEditor({
                       Published
                     </Label>
                     <p className="text-xs text-gray-500">
-                      Make this service visible on the public site
+                      Make this case study visible on the public site
                     </p>
                   </div>
                 </div>
 
-                {/* Timestamps - only show for existing services */}
-                {!isCreateMode && selectedService && (
+                {/* Timestamps - only show for existing case studies */}
+                {!isCreateMode && selectedCaseStudy && (
                   <div className="pt-5 sm:pt-6 border-t border-gray-200">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-sm">
                       <div>
                         <span className="text-gray-500">Created:</span>
                         <span className="ml-2 text-gray-700">
-                          {selectedService.created_at
+                          {selectedCaseStudy.created_at
                             ? new Date(
-                                selectedService.created_at
+                                selectedCaseStudy.created_at
                               ).toLocaleDateString()
                             : "N/A"}
                         </span>
@@ -609,8 +666,8 @@ export function ServicesEditor({
                       <div>
                         <span className="text-gray-500">Last updated:</span>
                         <span className="ml-2 text-gray-700">
-                          {selectedService.updated_at
-                            ? formatTimeAgo(selectedService.updated_at)
+                          {selectedCaseStudy.updated_at
+                            ? formatTimeAgo(selectedCaseStudy.updated_at)
                             : "N/A"}
                         </span>
                       </div>
@@ -621,21 +678,21 @@ export function ServicesEditor({
             </div>
           </>
         ) : (
-          // Empty state when no service is selected
+          // Empty state when no case study is selected
           <div className="flex flex-1 flex-col items-center justify-center p-4">
             <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300" />
             <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900 text-center">
-              No service selected
+              No case study selected
             </h3>
             <p className="mt-1 text-sm text-gray-500 text-center">
-              Select a service from the list or create a new one
+              Select a case study from the list or create a new one
             </p>
             <Button
               onClick={handleCreateNewMobile}
               className="mt-4 bg-black hover:bg-gray-800"
             >
               <Plus className="mr-2 h-4 w-4" />
-              Create Service
+              Create Case Study
             </Button>
           </div>
         )}
@@ -645,7 +702,7 @@ export function ServicesEditor({
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Service</DialogTitle>
+            <DialogTitle>Delete Case Study</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete &quot;{deleteTarget?.title}&quot;?
               This action cannot be undone.

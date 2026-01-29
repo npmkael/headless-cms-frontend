@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { CaseStudiesTable } from "../../components/case-studies-table";
+import {
+  CaseStudiesEditor,
+  type CaseStudy,
+} from "../../components/case-studies-editor";
 
 export default async function CaseStudiesPage() {
   const supabase = await createClient();
@@ -13,11 +16,11 @@ export default async function CaseStudiesPage() {
     console.error("Error fetching case studies:", error);
   }
 
-  const caseStudies = data ?? [];
+  const caseStudies: CaseStudy[] = data ?? [];
 
   return (
-    <div className="px-4 lg:px-6">
-      <CaseStudiesTable initialCaseStudies={caseStudies} />
+    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height)-32px)]">
+      <CaseStudiesEditor initialCaseStudies={caseStudies} />
     </div>
   );
 }
