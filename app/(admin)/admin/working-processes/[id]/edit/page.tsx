@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Loader2, Trash2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,27 +22,27 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import type { Tables, TablesUpdate } from "@/lib/database.types";
+import type { Tables } from "@/lib/database.types";
 
 // Working Process type from database
 type WorkingProcess = Tables<"working_processes">;
-type WorkingProcessUpdate = TablesUpdate<"working_processes">;
 
-// Form data type for controlled inputs
-interface FormData {
-  title: string;
-  description: string;
-  step_no: number;
-  sort_order: number;
-  is_active: boolean;
-}
+// Zod schema for form validation
+const workingProcessSchema = z.object({
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(100, "Title must be less than 100 characters"),
+  description: z
+    .string()
+    .min(1, "Description is required")
+    .max(500, "Description must be less than 500 characters"),
+  step_no: z.coerce.number().min(1, "Step number must be at least 1"),
+  sort_order: z.coerce.number().min(0, "Sort order must be 0 or greater"),
+  is_active: z.boolean(),
+});
 
-interface FormErrors {
-  title?: string;
-  description?: string;
-  step_no?: string;
-  sort_order?: string;
-}
+type WorkingProcessFormData = z.infer<typeof workingProcessSchema>;
 
 export default function EditWorkingProcessPage() {
   const router = useRouter();
@@ -48,25 +51,36 @@ export default function EditWorkingProcessPage() {
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Form state
+  // Working process state
   const [workingProcess, setWorkingProcess] = useState<WorkingProcess | null>(
     null
   );
-  const [formData, setFormData] = useState<FormData>({
-    title: "",
-    description: "",
-    step_no: 1,
-    sort_order: 0,
-    is_active: true,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const supabase = createClient();
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm({
+    resolver: zodResolver(workingProcessSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      step_no: 1,
+      sort_order: 0,
+      is_active: true,
+    },
+    mode: "onBlur",
+  });
+
+  const isActive = watch("is_active");
 
   // Fetch working process data
   useEffect(() => {
@@ -93,7 +107,7 @@ export default function EditWorkingProcessPage() {
         }
 
         setWorkingProcess(data);
-        setFormData({
+        reset({
           title: data.title,
           description: data.description,
           step_no: data.step_no,
@@ -110,123 +124,18 @@ export default function EditWorkingProcessPage() {
     };
 
     fetchWorkingProcess();
-  }, [processId, router, supabase]);
+  }, [processId, router, supabase, reset]);
 
-  const validateField = (
-    name: keyof FormData,
-    value: string | number | boolean
-  ): string | undefined => {
-    switch (name) {
-      case "title":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Title is required";
-        }
-        if (typeof value === "string" && value.length > 100) {
-          return "Title must be less than 100 characters";
-        }
-        break;
-      case "description":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Description is required";
-        }
-        if (typeof value === "string" && value.length > 500) {
-          return "Description must be less than 500 characters";
-        }
-        break;
-      case "step_no":
-        if (typeof value === "number" && value < 1) {
-          return "Step number must be at least 1";
-        }
-        break;
-      case "sort_order":
-        if (typeof value === "number" && value < 0) {
-          return "Sort order must be 0 or greater";
-        }
-        break;
-    }
-    return undefined;
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {
-      title: validateField("title", formData.title),
-      description: validateField("description", formData.description),
-      step_no: validateField("step_no", formData.step_no),
-      sort_order: validateField("sort_order", formData.sort_order),
-    };
-
-    setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== undefined);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const newValue = type === "number" ? parseInt(value) || 0 : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Validate on change if field has been touched
-    if (touched[name]) {
-      const error = validateField(name as keyof FormData, newValue);
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }));
-    }
-  };
-
-  const handleBlur = (name: string) => {
-    setTouched((prev) => ({
-      ...prev,
-      [name]: true,
-    }));
-
-    const value = formData[name as keyof FormData];
-    const error = validateField(name as keyof FormData, value);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      is_active: checked,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Mark all fields as touched
-    setTouched({
-      title: true,
-      description: true,
-      step_no: true,
-      sort_order: true,
-    });
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: WorkingProcessFormData) => {
     try {
       const { error } = await supabase
         .from("working_processes")
         .update({
-          title: formData.title,
-          description: formData.description,
-          step_no: formData.step_no,
-          sort_order: formData.sort_order,
-          is_active: formData.is_active,
+          title: data.title,
+          description: data.description,
+          step_no: data.step_no,
+          sort_order: data.sort_order,
+          is_active: data.is_active,
           updated_at: new Date().toISOString(),
         })
         .eq("id", processId);
@@ -242,8 +151,6 @@ export default function EditWorkingProcessPage() {
     } catch (error) {
       console.error("Error updating working process:", error);
       toast.error("Failed to update working process. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -273,9 +180,6 @@ export default function EditWorkingProcessPage() {
       setIsDeleting(false);
     }
   };
-
-  const isFormValid =
-    formData.title.trim() !== "" && formData.description.trim() !== "";
 
   // Loading state
   if (isLoading) {
@@ -338,7 +242,7 @@ export default function EditWorkingProcessPage() {
         {/* Form Card */}
         <div className="mx-auto max-w-2xl">
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Step Number Field */}
               <div className="space-y-2">
                 <Label
@@ -349,11 +253,7 @@ export default function EditWorkingProcessPage() {
                 </Label>
                 <Input
                   id="step_no"
-                  name="step_no"
                   type="number"
-                  value={formData.step_no}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("step_no")}
                   min={1}
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
@@ -364,9 +264,12 @@ export default function EditWorkingProcessPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("step_no")}
                 />
                 {errors.step_no ? (
-                  <p className="text-sm text-red-500">{errors.step_no}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.step_no.message}
+                  </p>
                 ) : (
                   <p id="step_no-helper" className="text-sm text-gray-500">
                     The step number displayed to users (e.g., Step 1, Step 2)
@@ -384,11 +287,7 @@ export default function EditWorkingProcessPage() {
                 </Label>
                 <Input
                   id="title"
-                  name="title"
                   type="text"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("title")}
                   placeholder="e.g., Discovery & Research"
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
@@ -399,10 +298,11 @@ export default function EditWorkingProcessPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("title")}
                 />
                 {errors.title && (
                   <p id="title-error" className="text-sm text-red-500">
-                    {errors.title}
+                    {errors.title.message}
                   </p>
                 )}
               </div>
@@ -417,10 +317,6 @@ export default function EditWorkingProcessPage() {
                 </Label>
                 <Textarea
                   id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("description")}
                   placeholder="Describe this step in your process..."
                   rows={4}
                   disabled={isSubmitting || isDeleting}
@@ -434,10 +330,11 @@ export default function EditWorkingProcessPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("description")}
                 />
                 {errors.description && (
                   <p id="description-error" className="text-sm text-red-500">
-                    {errors.description}
+                    {errors.description.message}
                   </p>
                 )}
               </div>
@@ -452,11 +349,7 @@ export default function EditWorkingProcessPage() {
                 </Label>
                 <Input
                   id="sort_order"
-                  name="sort_order"
                   type="number"
-                  value={formData.sort_order}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("sort_order")}
                   min={0}
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
@@ -467,9 +360,12 @@ export default function EditWorkingProcessPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("sort_order")}
                 />
                 {errors.sort_order ? (
-                  <p className="text-sm text-red-500">{errors.sort_order}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.sort_order.message}
+                  </p>
                 ) : (
                   <p id="sort_order-helper" className="text-sm text-gray-500">
                     Lower numbers appear first in the list
@@ -485,8 +381,10 @@ export default function EditWorkingProcessPage() {
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={handleCheckboxChange}
+                    checked={isActive}
+                    onCheckedChange={(checked) =>
+                      setValue("is_active", checked === true)
+                    }
                     disabled={isSubmitting || isDeleting}
                     className="mt-0.5 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                   />
@@ -531,7 +429,7 @@ export default function EditWorkingProcessPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || isDeleting || !isFormValid}
+                    disabled={isSubmitting || isDeleting || !isValid}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
                   >
                     {isSubmitting ? (
