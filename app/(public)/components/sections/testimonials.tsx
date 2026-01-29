@@ -92,7 +92,7 @@ export default function Testimonials({
                   <div key={testimonial.id} className="shrink-0 flex flex-col">
                     <div className="relative">
                       <div className="border border-main p-6 md:p-12 w-[calc(100vw-80px)] md:w-[550px] rounded-[32px] md:rounded-[45px]">
-                        <p className="text-xs md:text-base text-foreground leading-relaxed">
+                        <p className="text-xs md:text-base text-white leading-relaxed">
                           "{testimonial.message}"
                         </p>
                       </div>
