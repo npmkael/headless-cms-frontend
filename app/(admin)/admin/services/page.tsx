@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { ServicesTable, type Service } from "../../components/services-table";
+import { ServicesEditor, type Service } from "../../components/services-editor";
 
 export default async function ServicesPage() {
   const supabase = await createClient();
@@ -16,8 +16,8 @@ export default async function ServicesPage() {
   const services: Service[] = data ?? [];
 
   return (
-    <div className="px-4 lg:px-6">
-      <ServicesTable initialServices={services} />
+    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height)-32px)]">
+      <ServicesEditor initialServices={services} />
     </div>
   );
 }
