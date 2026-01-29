@@ -58,8 +58,8 @@ const data = {
       icon: IconChartBar,
     },
     {
-      title: "Team",
-      url: "/admin/team",
+      title: "Team Members",
+      url: "/admin/team-members",
       icon: IconFolder,
     },
     {
