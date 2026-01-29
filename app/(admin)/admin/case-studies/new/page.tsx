@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,159 +15,66 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import type { TablesInsert } from "@/lib/database.types";
 
-// Form data type for controlled inputs
-interface FormData {
-  title: string;
-  short_description: string;
-  cover_image_url: string;
-  link_url: string;
-  sort_order: number;
-  is_active: boolean;
-}
+// Zod schema for form validation
+const caseStudySchema = z.object({
+  title: z
+    .string()
+    .min(1, "Title is required")
+    .max(100, "Title must be less than 100 characters"),
+  short_description: z
+    .string()
+    .min(1, "Short description is required")
+    .max(500, "Short description must be less than 500 characters"),
+  cover_image_url: z.string().optional(),
+  link_url: z.string().optional(),
+  sort_order: z.coerce.number().min(0, "Sort order must be 0 or greater"),
+  is_active: z.boolean(),
+});
 
-interface FormErrors {
-  title?: string;
-  short_description?: string;
-  sort_order?: string;
-}
-
-// Type for Supabase insert
-type CaseStudyInsert = TablesInsert<"case_studies">;
+type CaseStudyFormData = z.infer<typeof caseStudySchema>;
 
 export default function NewCaseStudyPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    title: "",
-    short_description: "",
-    cover_image_url: "",
-    link_url: "",
-    sort_order: 0,
-    is_active: true,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const supabase = createClient();
   const [imageError, setImageError] = useState(false);
 
-  const supabase = createClient();
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm({
+    resolver: zodResolver(caseStudySchema),
+    defaultValues: {
+      title: "",
+      short_description: "",
+      cover_image_url: "",
+      link_url: "",
+      sort_order: 0,
+      is_active: true,
+    },
+    mode: "onBlur",
+  });
 
-  const validateField = (
-    name: keyof FormData,
-    value: string | number | boolean
-  ): string | undefined => {
-    switch (name) {
-      case "title":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Title is required";
-        }
-        if (typeof value === "string" && value.length > 100) {
-          return "Title must be less than 100 characters";
-        }
-        break;
-      case "short_description":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Short description is required";
-        }
-        if (typeof value === "string" && value.length > 500) {
-          return "Short description must be less than 500 characters";
-        }
-        break;
-      case "sort_order":
-        if (typeof value === "number" && value < 0) {
-          return "Sort order must be 0 or greater";
-        }
-        break;
-    }
-    return undefined;
-  };
+  const isActive = watch("is_active");
+  const coverImageUrl = watch("cover_image_url");
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {
-      title: validateField("title", formData.title),
-      short_description: validateField(
-        "short_description",
-        formData.short_description
-      ),
-      sort_order: validateField("sort_order", formData.sort_order),
-    };
+  // Reset image error when URL changes
+  useEffect(() => {
+    setImageError(false);
+  }, [coverImageUrl]);
 
-    setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== undefined);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const newValue = type === "number" ? parseInt(value) || 0 : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Reset image error when URL changes
-    if (name === "cover_image_url") {
-      setImageError(false);
-    }
-
-    // Validate on change if field has been touched
-    if (touched[name]) {
-      const error = validateField(name as keyof FormData, newValue);
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }));
-    }
-  };
-
-  const handleBlur = (name: string) => {
-    setTouched((prev) => ({
-      ...prev,
-      [name]: true,
-    }));
-
-    const value = formData[name as keyof FormData];
-    const error = validateField(name as keyof FormData, value);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      is_active: checked,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Mark all fields as touched
-    setTouched({
-      title: true,
-      short_description: true,
-      sort_order: true,
-    });
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: CaseStudyFormData) => {
     try {
       const { error } = await supabase.from("case_studies").insert({
-        title: formData.title,
-        short_description: formData.short_description,
-        cover_image_url: formData.cover_image_url || null,
-        link_url: formData.link_url || null,
-        sort_order: formData.sort_order,
-        is_active: formData.is_active,
+        title: data.title,
+        short_description: data.short_description,
+        cover_image_url: data.cover_image_url || null,
+        link_url: data.link_url || null,
+        sort_order: data.sort_order,
+        is_active: data.is_active,
       });
 
       if (error) {
@@ -178,13 +88,8 @@ export default function NewCaseStudyPage() {
     } catch (error) {
       console.error("Error creating case study:", error);
       toast.error("Failed to create case study. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const isFormValid =
-    formData.title.trim() !== "" && formData.short_description.trim() !== "";
 
   return (
     <div className="px-4 lg:px-6">
@@ -206,7 +111,7 @@ export default function NewCaseStudyPage() {
       {/* Form Card */}
       <div className="mx-auto max-w-2xl">
         <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Title Field */}
             <div className="space-y-2">
               <Label
@@ -217,11 +122,7 @@ export default function NewCaseStudyPage() {
               </Label>
               <Input
                 id="title"
-                name="title"
                 type="text"
-                value={formData.title}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("title")}
                 placeholder="e.g., E-commerce Platform Redesign"
                 disabled={isSubmitting}
                 aria-required="true"
@@ -232,10 +133,11 @@ export default function NewCaseStudyPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("title")}
               />
               {errors.title && (
                 <p id="title-error" className="text-sm text-red-500">
-                  {errors.title}
+                  {errors.title.message}
                 </p>
               )}
             </div>
@@ -250,10 +152,6 @@ export default function NewCaseStudyPage() {
               </Label>
               <Textarea
                 id="short_description"
-                name="short_description"
-                value={formData.short_description}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("short_description")}
                 placeholder="Brief summary of the case study..."
                 rows={4}
                 disabled={isSubmitting}
@@ -269,13 +167,14 @@ export default function NewCaseStudyPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("short_description")}
               />
               {errors.short_description && (
                 <p
                   id="short_description-error"
                   className="text-sm text-red-500"
                 >
-                  {errors.short_description}
+                  {errors.short_description.message}
                 </p>
               )}
             </div>
@@ -290,37 +189,35 @@ export default function NewCaseStudyPage() {
               </Label>
               <Input
                 id="cover_image_url"
-                name="cover_image_url"
                 type="text"
-                value={formData.cover_image_url}
-                onChange={handleInputChange}
                 placeholder="https://example.com/image.jpg"
                 disabled={isSubmitting}
                 className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+                {...register("cover_image_url")}
               />
               <p className="text-sm text-gray-500">
                 Optional: URL to case study cover image
               </p>
               {/* Image Preview */}
-              {formData.cover_image_url && !imageError && (
+              {coverImageUrl && !imageError && (
                 <div className="mt-3">
                   <p className="mb-2 text-xs font-medium text-gray-500">
                     Preview:
                   </p>
                   <div className="relative inline-block overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-2">
                     <Image
-                      src={formData.cover_image_url}
+                      src={coverImageUrl}
                       alt="Cover preview"
                       width={200}
                       height={120}
-                      className="h-30 w-50 object-cover rounded"
+                      className="h-30 w-50 rounded object-cover"
                       onError={() => setImageError(true)}
                       unoptimized
                     />
                   </div>
                 </div>
               )}
-              {formData.cover_image_url && imageError && (
+              {coverImageUrl && imageError && (
                 <p className="text-sm text-amber-600">
                   Unable to load image preview. Please check the URL.
                 </p>
@@ -337,13 +234,11 @@ export default function NewCaseStudyPage() {
               </Label>
               <Input
                 id="link_url"
-                name="link_url"
                 type="text"
-                value={formData.link_url}
-                onChange={handleInputChange}
                 placeholder="https://example.com/case-study"
                 disabled={isSubmitting}
                 className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+                {...register("link_url")}
               />
               <p className="text-sm text-gray-500">
                 Optional: Link to full case study or external page
@@ -360,11 +255,7 @@ export default function NewCaseStudyPage() {
               </Label>
               <Input
                 id="sort_order"
-                name="sort_order"
                 type="number"
-                value={formData.sort_order}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("sort_order")}
                 min={0}
                 disabled={isSubmitting}
                 aria-required="true"
@@ -375,9 +266,12 @@ export default function NewCaseStudyPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("sort_order")}
               />
               {errors.sort_order ? (
-                <p className="text-sm text-red-500">{errors.sort_order}</p>
+                <p className="text-sm text-red-500">
+                  {errors.sort_order.message}
+                </p>
               ) : (
                 <p id="sort_order-helper" className="text-sm text-gray-500">
                   Lower numbers appear first
@@ -393,15 +287,17 @@ export default function NewCaseStudyPage() {
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={handleCheckboxChange}
+                  checked={isActive}
+                  onCheckedChange={(checked) =>
+                    setValue("is_active", checked === true)
+                  }
                   disabled={isSubmitting}
                   className="mt-0.5 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                 />
                 <div className="space-y-1">
                   <Label
                     htmlFor="is_active"
-                    className="text-sm font-medium text-gray-900 cursor-pointer"
+                    className="cursor-pointer text-sm font-medium text-gray-900"
                   >
                     Active
                   </Label>
@@ -425,7 +321,7 @@ export default function NewCaseStudyPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !isFormValid}
+                disabled={isSubmitting || !isValid}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
               >
                 {isSubmitting ? (
