@@ -60,24 +60,50 @@ function TeamCard({ member, id }: TeamCardProps) {
       className="group relative bg-white rounded-[35px] border border-black shadow-[0px_5px_0px_0px_rgba(0,0,0,1)] p-6 flex flex-col cursor-pointer transition-colors"
     >
       <div className="flex items-end gap-4 mb-4">
-        <div className="relative shrink-0">
-          <div
-            className="flower bg-main overflow-hidden"
-            style={{ width: "100px", height: "100px" }}
+        {/* Clover Avatar Shape */}
+        <div className="relative shrink-0 w-[76px] h-[76px] self-end">
+          {/* Black shadow (offset) */}
+          <Image
+            src="/logo/flower-bob.svg"
+            alt=""
+            width={70}
+            height={70}
+            className="absolute top-1 left-1.5"
+            aria-hidden="true"
+          />
+          {/* Green clover shape */}
+          <svg
+            width="70"
+            height="70"
+            viewBox="0 0 98 98"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="absolute right-1.5 top-0"
           >
-            {/* <Image
-              src={member.image}
-              alt={member.name}
-              width={100}
-              height={100}
-              className="w-full h-full object-cover grayscale"
-              onError={(e) => {
-                // Fallback to placeholder if image fails
-                const target = e.target as HTMLImageElement;
-                // target.src = `https://api.dicebear.com/7.x/personas/svg?seed=${member.name}`;
+            <path
+              d="M83.8068 48.9117C116.649 86.3213 86.3213 116.649 48.9117 83.8068C11.5021 116.649 -18.8258 86.3213 14.0166 48.9117C-18.8258 11.5021 11.5021 -18.8258 48.9117 14.0166C86.3213 -18.8258 116.649 11.5021 83.8068 48.9117Z"
+              fill="#B9FF66"
+            />
+          </svg>
+          {/* Avatar image clipped to clover shape */}
+          {true && (
+            <div
+              className="absolute right-1.5 top-0 w-[70px] h-[70px] overflow-hidden"
+              style={{
+                clipPath:
+                  "path('M59.85 35.11C83.66 62.11 61.71 83.66 35.11 59.85C8.28 83.66 -13.57 62.11 10.09 35.11C-13.57 8.28 8.28 -13.57 35.11 10.09C62.11 -13.57 83.66 8.28 59.85 35.11Z')",
               }}
-            /> */}
-          </div>
+            >
+              <Image
+                src="/images/team/team-1.jpg"
+                alt={member.name || "Team member"}
+                fill
+                className="object-cover grayscale scale-130"
+              />
+              {/* Green overlay for tint effect */}
+              <div className="absolute inset-0 bg-main/90 mix-blend-multiply" />
+            </div>
+          )}
         </div>
 
         {/* Name and Role */}
@@ -93,7 +119,7 @@ function TeamCard({ member, id }: TeamCardProps) {
               href={JSON.parse(member.socials_json).linkedin}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors "
+              className="w-9 h-9 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors"
               aria-label={`${member.name}'s LinkedIn profile`}
             >
               <Linkedin className="w-5 h-5 text-main" />
@@ -106,7 +132,7 @@ function TeamCard({ member, id }: TeamCardProps) {
       <div className="w-full h-px bg-black mb-4" />
 
       {/* Experience/Description */}
-      <p className="text-sm text-muted-foreground leading-relaxed">
+      <p className="text-sm text-black leading-relaxed">
         Lorem ipsum dolor sit amet consectetur adipisicing elit. Labore optio
         minima quo ea delectum.
       </p>
