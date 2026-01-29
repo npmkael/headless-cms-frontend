@@ -14,29 +14,30 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables, TablesUpdate } from "@/lib/database.types";
 
-// Service type from database
-type Service = Tables<"services">;
-type ServiceUpdate = TablesUpdate<"services">;
+// Case Study type from database
+type CaseStudy = Tables<"case_studies">;
+type CaseStudyUpdate = TablesUpdate<"case_studies">;
 
 // Form data type for controlled inputs
 interface FormData {
   title: string;
-  description: string;
-  icon_url: string;
+  short_description: string;
+  cover_image_url: string;
+  link_url: string;
   sort_order: number;
   is_active: boolean;
 }
 
 interface FormErrors {
   title?: string;
-  description?: string;
+  short_description?: string;
   sort_order?: string;
 }
 
-export default function EditServicePage() {
+export default function EditCaseStudyPage() {
   const router = useRouter();
   const params = useParams();
-  const serviceId = params.id as string;
+  const caseStudyId = params.id as string;
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -45,11 +46,12 @@ export default function EditServicePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Form state
-  const [service, setService] = useState<Service | null>(null);
+  const [caseStudy, setCaseStudy] = useState<CaseStudy | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: "",
-    description: "",
-    icon_url: "",
+    short_description: "",
+    cover_image_url: "",
+    link_url: "",
     sort_order: 0,
     is_active: true,
   });
@@ -57,55 +59,56 @@ export default function EditServicePage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [imageError, setImageError] = useState(false);
 
-  const supabase = createClient();
-
   // Modal refs for accessibility
   const modalRef = useRef<HTMLDivElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Fetch service data
+  const supabase = createClient();
+
+  // Fetch case study data
   useEffect(() => {
-    const fetchService = async () => {
+    const fetchCaseStudy = async () => {
       setIsLoading(true);
       try {
         const { data, error } = await supabase
-          .from("services")
+          .from("case_studies")
           .select("*")
-          .eq("id", serviceId)
+          .eq("id", caseStudyId)
           .single();
 
         if (error) {
-          console.error("Error fetching service:", error);
-          toast.error("Failed to load service data");
-          router.push("/admin/services");
+          console.error("Error fetching case study:", error);
+          toast.error("Failed to load case study data");
+          router.push("/admin/case-studies");
           return;
         }
 
         if (!data) {
-          toast.error("Service not found");
-          router.push("/admin/services");
+          toast.error("Case study not found");
+          router.push("/admin/case-studies");
           return;
         }
 
-        setService(data);
+        setCaseStudy(data);
         setFormData({
           title: data.title,
-          description: data.description,
-          icon_url: data.icon_url || "",
+          short_description: data.short_description,
+          cover_image_url: data.cover_image_url || "",
+          link_url: data.link_url || "",
           sort_order: data.sort_order,
           is_active: data.is_active,
         });
       } catch (error) {
-        console.error("Error fetching service:", error);
-        toast.error("Failed to load service data");
-        router.push("/admin/services");
+        console.error("Error fetching case study:", error);
+        toast.error("Failed to load case study data");
+        router.push("/admin/case-studies");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchService();
-  }, [serviceId, router, supabase]);
+    fetchCaseStudy();
+  }, [caseStudyId, router, supabase]);
 
   // Handle escape key for modal
   useEffect(() => {
@@ -117,9 +120,7 @@ export default function EditServicePage() {
 
     if (showDeleteModal) {
       document.addEventListener("keydown", handleEscape);
-      // Focus the cancel button when modal opens
       cancelButtonRef.current?.focus();
-      // Prevent body scroll
       document.body.style.overflow = "hidden";
     }
 
@@ -163,12 +164,12 @@ export default function EditServicePage() {
           return "Title must be less than 100 characters";
         }
         break;
-      case "description":
+      case "short_description":
         if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Description is required";
+          return "Short description is required";
         }
         if (typeof value === "string" && value.length > 500) {
-          return "Description must be less than 500 characters";
+          return "Short description must be less than 500 characters";
         }
         break;
       case "sort_order":
@@ -183,7 +184,10 @@ export default function EditServicePage() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {
       title: validateField("title", formData.title),
-      description: validateField("description", formData.description),
+      short_description: validateField(
+        "short_description",
+        formData.short_description
+      ),
       sort_order: validateField("sort_order", formData.sort_order),
     };
 
@@ -203,7 +207,7 @@ export default function EditServicePage() {
     }));
 
     // Reset image error when URL changes
-    if (name === "icon_url") {
+    if (name === "cover_image_url") {
       setImageError(false);
     }
 
@@ -244,7 +248,7 @@ export default function EditServicePage() {
     // Mark all fields as touched
     setTouched({
       title: true,
-      description: true,
+      short_description: true,
       sort_order: true,
     });
 
@@ -256,28 +260,29 @@ export default function EditServicePage() {
 
     try {
       const { error } = await supabase
-        .from("services")
+        .from("case_studies")
         .update({
           title: formData.title,
-          description: formData.description,
-          icon_url: formData.icon_url || null,
+          short_description: formData.short_description,
+          cover_image_url: formData.cover_image_url || null,
+          link_url: formData.link_url || null,
           sort_order: formData.sort_order,
           is_active: formData.is_active,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", serviceId);
+        .eq("id", caseStudyId);
 
       if (error) {
-        console.error("Error updating service:", error);
-        toast.error("Failed to update service. Please try again.");
+        console.error("Error updating case study:", error);
+        toast.error("Failed to update case study. Please try again.");
         return;
       }
 
-      toast.success("Service updated successfully!");
-      router.push("/admin/services");
+      toast.success("Case study updated successfully!");
+      router.push("/admin/case-studies");
     } catch (error) {
-      console.error("Error updating service:", error);
-      toast.error("Failed to update service. Please try again.");
+      console.error("Error updating case study:", error);
+      toast.error("Failed to update case study. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -288,22 +293,22 @@ export default function EditServicePage() {
 
     try {
       const { error } = await supabase
-        .from("services")
+        .from("case_studies")
         .delete()
-        .eq("id", serviceId);
+        .eq("id", caseStudyId);
 
       if (error) {
-        console.error("Error deleting service:", error);
-        toast.error("Failed to delete service. Please try again.");
+        console.error("Error deleting case study:", error);
+        toast.error("Failed to delete case study. Please try again.");
         setShowDeleteModal(false);
         return;
       }
 
-      toast.success("Service deleted successfully!");
-      router.push("/admin/services");
+      toast.success("Case study deleted successfully!");
+      router.push("/admin/case-studies");
     } catch (error) {
-      console.error("Error deleting service:", error);
-      toast.error("Failed to delete service. Please try again.");
+      console.error("Error deleting case study:", error);
+      toast.error("Failed to delete case study. Please try again.");
       setShowDeleteModal(false);
     } finally {
       setIsDeleting(false);
@@ -311,7 +316,7 @@ export default function EditServicePage() {
   };
 
   const isFormValid =
-    formData.title.trim() !== "" && formData.description.trim() !== "";
+    formData.title.trim() !== "" && formData.short_description.trim() !== "";
 
   // Loading state
   if (isLoading) {
@@ -323,18 +328,18 @@ export default function EditServicePage() {
             asChild
             className="mb-4 -ml-2 text-gray-600 hover:text-gray-900"
           >
-            <Link href="/admin/services">
+            <Link href="/admin/case-studies">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Services
+              Back to Case Studies
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Service</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Edit Case Study</h1>
         </div>
         <div className="mx-auto max-w-2xl">
           <div className="flex h-64 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-gray-200">
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-              <p className="text-sm text-gray-500">Loading service...</p>
+              <p className="text-sm text-gray-500">Loading case study...</p>
             </div>
           </div>
         </div>
@@ -352,15 +357,15 @@ export default function EditServicePage() {
             asChild
             className="mb-4 -ml-2 text-gray-600 hover:text-gray-900"
           >
-            <Link href="/admin/services">
+            <Link href="/admin/case-studies">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Services
+              Back to Case Studies
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Service</h1>
-          {service && (
+          <h1 className="text-2xl font-bold text-gray-900">Edit Case Study</h1>
+          {caseStudy && (
             <p className="mt-1 text-sm text-gray-500">
-              Editing: {service.title}
+              Editing: {caseStudy.title}
             </p>
           )}
         </div>
@@ -384,7 +389,7 @@ export default function EditServicePage() {
                   value={formData.title}
                   onChange={handleInputChange}
                   onBlur={() => handleBlur("title")}
-                  placeholder="e.g., Web Development"
+                  placeholder="e.g., E-commerce Platform Redesign"
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
                   aria-invalid={!!errors.title}
@@ -402,86 +407,114 @@ export default function EditServicePage() {
                 )}
               </div>
 
-              {/* Description Field */}
+              {/* Short Description Field */}
               <div className="space-y-2">
                 <Label
-                  htmlFor="description"
+                  htmlFor="short_description"
                   className="text-sm font-medium text-gray-700"
                 >
-                  Description <span className="text-red-500">*</span>
+                  Short Description <span className="text-red-500">*</span>
                 </Label>
                 <Textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
+                  id="short_description"
+                  name="short_description"
+                  value={formData.short_description}
                   onChange={handleInputChange}
-                  onBlur={() => handleBlur("description")}
-                  placeholder="Describe your service in detail..."
-                  rows={5}
+                  onBlur={() => handleBlur("short_description")}
+                  placeholder="Brief summary of the case study..."
+                  rows={4}
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
-                  aria-invalid={!!errors.description}
+                  aria-invalid={!!errors.short_description}
                   aria-describedby={
-                    errors.description ? "description-error" : undefined
+                    errors.short_description
+                      ? "short_description-error"
+                      : undefined
                   }
                   className={`resize-none ${
-                    errors.description
+                    errors.short_description
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
                 />
-                {errors.description && (
-                  <p id="description-error" className="text-sm text-red-500">
-                    {errors.description}
+                {errors.short_description && (
+                  <p
+                    id="short_description-error"
+                    className="text-sm text-red-500"
+                  >
+                    {errors.short_description}
                   </p>
                 )}
               </div>
 
-              {/* Icon URL Field */}
+              {/* Cover Image URL Field */}
               <div className="space-y-2">
                 <Label
-                  htmlFor="icon_url"
+                  htmlFor="cover_image_url"
                   className="text-sm font-medium text-gray-700"
                 >
-                  Icon URL
+                  Cover Image URL
                 </Label>
                 <Input
-                  id="icon_url"
-                  name="icon_url"
+                  id="cover_image_url"
+                  name="cover_image_url"
                   type="text"
-                  value={formData.icon_url}
+                  value={formData.cover_image_url}
                   onChange={handleInputChange}
-                  placeholder="https://example.com/icon.png"
+                  placeholder="https://example.com/image.jpg"
                   disabled={isSubmitting || isDeleting}
                   className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 />
                 <p className="text-sm text-gray-500">
-                  Optional: URL to service icon/image
+                  Optional: URL to case study cover image
                 </p>
                 {/* Image Preview */}
-                {formData.icon_url && !imageError && (
+                {formData.cover_image_url && !imageError && (
                   <div className="mt-3">
                     <p className="mb-2 text-xs font-medium text-gray-500">
                       Preview:
                     </p>
                     <div className="relative inline-block overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-2">
                       <Image
-                        src={formData.icon_url}
-                        alt="Icon preview"
-                        width={64}
-                        height={64}
-                        className="h-16 w-16 object-contain"
+                        src={formData.cover_image_url}
+                        alt="Cover preview"
+                        width={200}
+                        height={120}
+                        className="h-30 w-50 object-cover rounded"
                         onError={() => setImageError(true)}
                         unoptimized
                       />
                     </div>
                   </div>
                 )}
-                {formData.icon_url && imageError && (
+                {formData.cover_image_url && imageError && (
                   <p className="text-sm text-amber-600">
                     Unable to load image preview. Please check the URL.
                   </p>
                 )}
+              </div>
+
+              {/* Link URL Field */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="link_url"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Link URL
+                </Label>
+                <Input
+                  id="link_url"
+                  name="link_url"
+                  type="text"
+                  value={formData.link_url}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/case-study"
+                  disabled={isSubmitting || isDeleting}
+                  className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+                />
+                <p className="text-sm text-gray-500">
+                  Optional: Link to full case study or external page
+                </p>
               </div>
 
               {/* Sort Order Field */}
@@ -540,7 +573,7 @@ export default function EditServicePage() {
                       Active
                     </Label>
                     <p className="text-sm text-gray-500">
-                      This service will be visible on the public site
+                      This case study will be visible on the public site
                     </p>
                   </div>
                 </div>
@@ -569,7 +602,7 @@ export default function EditServicePage() {
                     disabled={isSubmitting || isDeleting}
                     className="w-full sm:w-auto"
                   >
-                    <Link href="/admin/services">Cancel</Link>
+                    <Link href="/admin/case-studies">Cancel</Link>
                   </Button>
                   <Button
                     type="submit"
@@ -582,7 +615,7 @@ export default function EditServicePage() {
                         Updating...
                       </>
                     ) : (
-                      "Update Service"
+                      "Update Case Study"
                     )}
                   </Button>
                 </div>
@@ -631,15 +664,15 @@ export default function EditServicePage() {
                 id="delete-modal-title"
                 className="text-lg font-semibold text-gray-900"
               >
-                Delete Service?
+                Delete Case Study?
               </h3>
 
               <p
                 id="delete-modal-description"
                 className="mt-2 text-sm text-gray-500"
               >
-                Are you sure you want to delete this service? This action cannot
-                be undone.
+                Are you sure you want to delete this case study? This action
+                cannot be undone.
               </p>
             </div>
 
@@ -667,7 +700,7 @@ export default function EditServicePage() {
                     Deleting...
                   </>
                 ) : (
-                  "Delete Service"
+                  "Delete Case Study"
                 )}
               </Button>
             </div>

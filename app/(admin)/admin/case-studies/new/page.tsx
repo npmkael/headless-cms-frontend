@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,34 +17,36 @@ import type { TablesInsert } from "@/lib/database.types";
 // Form data type for controlled inputs
 interface FormData {
   title: string;
-  description: string;
-  icon_url: string;
+  short_description: string;
+  cover_image_url: string;
+  link_url: string;
   sort_order: number;
   is_active: boolean;
 }
 
 interface FormErrors {
   title?: string;
-  description?: string;
+  short_description?: string;
   sort_order?: string;
 }
 
 // Type for Supabase insert
-type ServiceInsert = TablesInsert<"services">;
+type CaseStudyInsert = TablesInsert<"case_studies">;
 
-export default function NewServicePage() {
+export default function NewCaseStudyPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     title: "",
-    description: "",
-    icon_url: "",
+    short_description: "",
+    cover_image_url: "",
+    link_url: "",
     sort_order: 0,
     is_active: true,
   });
   const [errors, setErrors] = useState<FormErrors>({});
-
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [imageError, setImageError] = useState(false);
 
   const supabase = createClient();
 
@@ -60,12 +63,12 @@ export default function NewServicePage() {
           return "Title must be less than 100 characters";
         }
         break;
-      case "description":
+      case "short_description":
         if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Description is required";
+          return "Short description is required";
         }
         if (typeof value === "string" && value.length > 500) {
-          return "Description must be less than 500 characters";
+          return "Short description must be less than 500 characters";
         }
         break;
       case "sort_order":
@@ -80,7 +83,10 @@ export default function NewServicePage() {
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {
       title: validateField("title", formData.title),
-      description: validateField("description", formData.description),
+      short_description: validateField(
+        "short_description",
+        formData.short_description
+      ),
       sort_order: validateField("sort_order", formData.sort_order),
     };
 
@@ -98,6 +104,11 @@ export default function NewServicePage() {
       ...prev,
       [name]: newValue,
     }));
+
+    // Reset image error when URL changes
+    if (name === "cover_image_url") {
+      setImageError(false);
+    }
 
     // Validate on change if field has been touched
     if (touched[name]) {
@@ -136,7 +147,7 @@ export default function NewServicePage() {
     // Mark all fields as touched
     setTouched({
       title: true,
-      description: true,
+      short_description: true,
       sort_order: true,
     });
 
@@ -147,32 +158,33 @@ export default function NewServicePage() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("services").insert({
+      const { error } = await supabase.from("case_studies").insert({
         title: formData.title,
-        description: formData.description,
-        icon_url: formData.icon_url || null,
+        short_description: formData.short_description,
+        cover_image_url: formData.cover_image_url || null,
+        link_url: formData.link_url || null,
         sort_order: formData.sort_order,
         is_active: formData.is_active,
       });
 
       if (error) {
-        console.error("Error creating service:", error);
-        toast.error("Failed to create service. Please try again.");
+        console.error("Error creating case study:", error);
+        toast.error("Failed to create case study. Please try again.");
         return;
       }
 
-      toast.success("Service created successfully!");
-      router.push("/admin/services");
+      toast.success("Case study created successfully!");
+      router.push("/admin/case-studies");
     } catch (error) {
-      console.error("Error creating service:", error);
-      toast.error("Failed to create service. Please try again.");
+      console.error("Error creating case study:", error);
+      toast.error("Failed to create case study. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const isFormValid =
-    formData.title.trim() !== "" && formData.description.trim() !== "";
+    formData.title.trim() !== "" && formData.short_description.trim() !== "";
 
   return (
     <div className="px-4 lg:px-6">
@@ -183,12 +195,12 @@ export default function NewServicePage() {
           asChild
           className="mb-4 -ml-2 text-gray-600 hover:text-gray-900"
         >
-          <Link href="/admin/services">
+          <Link href="/admin/case-studies">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Services
+            Back to Case Studies
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold text-gray-900">Add New Service</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Add New Case Study</h1>
       </div>
 
       {/* Form Card */}
@@ -210,7 +222,7 @@ export default function NewServicePage() {
                 value={formData.title}
                 onChange={handleInputChange}
                 onBlur={() => handleBlur("title")}
-                placeholder="e.g., Web Development"
+                placeholder="e.g., E-commerce Platform Redesign"
                 disabled={isSubmitting}
                 aria-required="true"
                 aria-invalid={!!errors.title}
@@ -228,61 +240,113 @@ export default function NewServicePage() {
               )}
             </div>
 
-            {/* Description Field */}
+            {/* Short Description Field */}
             <div className="space-y-2">
               <Label
-                htmlFor="description"
+                htmlFor="short_description"
                 className="text-sm font-medium text-gray-700"
               >
-                Description <span className="text-red-500">*</span>
+                Short Description <span className="text-red-500">*</span>
               </Label>
               <Textarea
-                id="description"
-                name="description"
-                value={formData.description}
+                id="short_description"
+                name="short_description"
+                value={formData.short_description}
                 onChange={handleInputChange}
-                onBlur={() => handleBlur("description")}
-                placeholder="Describe your service in detail..."
-                rows={5}
+                onBlur={() => handleBlur("short_description")}
+                placeholder="Brief summary of the case study..."
+                rows={4}
                 disabled={isSubmitting}
                 aria-required="true"
-                aria-invalid={!!errors.description}
+                aria-invalid={!!errors.short_description}
                 aria-describedby={
-                  errors.description ? "description-error" : undefined
+                  errors.short_description
+                    ? "short_description-error"
+                    : undefined
                 }
                 className={`resize-none ${
-                  errors.description
+                  errors.short_description
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
               />
-              {errors.description && (
-                <p id="description-error" className="text-sm text-red-500">
-                  {errors.description}
+              {errors.short_description && (
+                <p
+                  id="short_description-error"
+                  className="text-sm text-red-500"
+                >
+                  {errors.short_description}
                 </p>
               )}
             </div>
 
-            {/* Icon URL Field */}
+            {/* Cover Image URL Field */}
             <div className="space-y-2">
               <Label
-                htmlFor="icon_url"
+                htmlFor="cover_image_url"
                 className="text-sm font-medium text-gray-700"
               >
-                Icon URL
+                Cover Image URL
               </Label>
               <Input
-                id="icon_url"
-                name="icon_url"
+                id="cover_image_url"
+                name="cover_image_url"
                 type="text"
-                value={formData.icon_url}
+                value={formData.cover_image_url}
                 onChange={handleInputChange}
-                placeholder="https://example.com/icon.png"
+                placeholder="https://example.com/image.jpg"
                 disabled={isSubmitting}
                 className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
               />
               <p className="text-sm text-gray-500">
-                Optional: URL to service icon/image
+                Optional: URL to case study cover image
+              </p>
+              {/* Image Preview */}
+              {formData.cover_image_url && !imageError && (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-medium text-gray-500">
+                    Preview:
+                  </p>
+                  <div className="relative inline-block overflow-hidden rounded-lg border border-gray-200 bg-gray-50 p-2">
+                    <Image
+                      src={formData.cover_image_url}
+                      alt="Cover preview"
+                      width={200}
+                      height={120}
+                      className="h-30 w-50 object-cover rounded"
+                      onError={() => setImageError(true)}
+                      unoptimized
+                    />
+                  </div>
+                </div>
+              )}
+              {formData.cover_image_url && imageError && (
+                <p className="text-sm text-amber-600">
+                  Unable to load image preview. Please check the URL.
+                </p>
+              )}
+            </div>
+
+            {/* Link URL Field */}
+            <div className="space-y-2">
+              <Label
+                htmlFor="link_url"
+                className="text-sm font-medium text-gray-700"
+              >
+                Link URL
+              </Label>
+              <Input
+                id="link_url"
+                name="link_url"
+                type="text"
+                value={formData.link_url}
+                onChange={handleInputChange}
+                placeholder="https://example.com/case-study"
+                disabled={isSubmitting}
+                className="h-11 border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
+              />
+              <p className="text-sm text-gray-500">
+                Optional: Link to full case study or external page
               </p>
             </div>
 
@@ -342,7 +406,7 @@ export default function NewServicePage() {
                     Active
                   </Label>
                   <p className="text-sm text-gray-500">
-                    This service will be visible on the public site
+                    This case study will be visible on the public site
                   </p>
                 </div>
               </div>
@@ -357,7 +421,7 @@ export default function NewServicePage() {
                 disabled={isSubmitting}
                 className="w-full sm:w-auto"
               >
-                <Link href="/admin/services">Cancel</Link>
+                <Link href="/admin/case-studies">Cancel</Link>
               </Button>
               <Button
                 type="submit"
@@ -370,7 +434,7 @@ export default function NewServicePage() {
                     Creating...
                   </>
                 ) : (
-                  "Create Service"
+                  "Create Case Study"
                 )}
               </Button>
             </div>

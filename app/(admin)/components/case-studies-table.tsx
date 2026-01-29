@@ -40,26 +40,27 @@ import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 
 // Types
-export type Service = Tables<"services">;
+export type CaseStudy = Tables<"case_studies">;
 
-export function ServicesTable({
-  initialServices,
+export function CaseStudiesTable({
+  initialCaseStudies,
 }: {
-  initialServices: Service[];
+  initialCaseStudies: CaseStudy[];
 }) {
-  const [services, setServices] = useState<Service[]>(initialServices);
-  const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
+  const [caseStudies, setCaseStudies] =
+    useState<CaseStudy[]>(initialCaseStudies);
+  const [deleteTarget, setDeleteTarget] = useState<CaseStudy | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Calculate stats
-  const totalServices = services.length;
-  const activeServices = services.filter((s) => s.is_active).length;
-  const inactiveServices = services.filter((s) => !s.is_active).length;
+  const totalCaseStudies = caseStudies.length;
+  const activeCaseStudies = caseStudies.filter((s) => s.is_active).length;
+  const inactiveCaseStudies = caseStudies.filter((s) => !s.is_active).length;
 
   // Handle delete
-  const handleDelete = (service: Service) => {
-    setDeleteTarget(service);
+  const handleDelete = (caseStudy: CaseStudy) => {
+    setDeleteTarget(caseStudy);
     setIsDeleteDialogOpen(true);
   };
 
@@ -70,16 +71,16 @@ export function ServicesTable({
     const supabase = createClient();
 
     const { error } = await supabase
-      .from("services")
+      .from("case_studies")
       .delete()
       .eq("id", deleteTarget.id);
 
     if (error) {
       console.error(error);
-      toast.error("Failed to delete service");
+      toast.error("Failed to delete case study");
     } else {
-      setServices((prev) => prev.filter((s) => s.id !== deleteTarget.id));
-      toast.success("Service deleted successfully");
+      setCaseStudies((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      toast.success("Case study deleted successfully");
     }
 
     setIsDeleting(false);
@@ -97,15 +98,13 @@ export function ServicesTable({
       {/* Header */}
       <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Services</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            Manage your service offerings
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Case Studies</h1>
+          <p className="mt-1 text-sm text-gray-600">Manage your case studies</p>
         </div>
         <Button asChild className="bg-black">
-          <Link href="/admin/services/new">
+          <Link href="/admin/case-studies/new">
             <Plus className="h-4 w-4" />
-            Add Service
+            Add Case Study
           </Link>
         </Button>
       </div>
@@ -115,30 +114,30 @@ export function ServicesTable({
         <Card className="@container/card">
           <CardHeader>
             <CardTitle className="text-xl font-semibold tabular-nums @[250px]/card:text-5xl">
-              {totalServices}
+              {totalCaseStudies}
             </CardTitle>
             <CardDescription className="text-sm text-gray-500">
-              Total Services
+              Total Case Studies
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="@container/card">
           <CardHeader>
             <CardTitle className="text-xl font-semibold tabular-nums @[250px]/card:text-5xl">
-              {activeServices}
+              {activeCaseStudies}
             </CardTitle>
             <CardDescription className="text-sm text-gray-500">
-              Active Services
+              Active Case Studies
             </CardDescription>
           </CardHeader>
         </Card>
         <Card className="@container/card">
           <CardHeader>
             <CardTitle className="text-xl font-semibold tabular-nums @[250px]/card:text-5xl">
-              {inactiveServices}
+              {inactiveCaseStudies}
             </CardTitle>
             <CardDescription className="text-sm text-gray-500">
-              Inactive Services
+              Inactive Case Studies
             </CardDescription>
           </CardHeader>
         </Card>
@@ -153,7 +152,7 @@ export function ServicesTable({
                 Title
               </TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Description
+                Short Description
               </TableHead>
               <TableHead className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Sort Order
@@ -167,25 +166,25 @@ export function ServicesTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {services.map((service) => (
+            {caseStudies.map((caseStudy) => (
               <TableRow
-                key={service.id}
+                key={caseStudy.id}
                 className="transition-colors hover:bg-gray-50"
               >
                 <TableCell className="font-semibold text-gray-900">
-                  {service.title}
+                  {caseStudy.title}
                 </TableCell>
                 <TableCell className="max-w-xs">
                   <p
                     className="truncate text-gray-500"
-                    title={service.description}
+                    title={caseStudy.short_description ?? ""}
                   >
-                    {service.description}
+                    {caseStudy.short_description}
                   </p>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-gray-600">
-                    {service.sort_order}
+                    {caseStudy.sort_order}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -193,7 +192,7 @@ export function ServicesTable({
                     variant="outline"
                     className="text-muted-foreground px-1.5"
                   >
-                    {service.is_active ? "Active" : "Inactive"}
+                    {caseStudy.is_active ? "Active" : "Inactive"}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -210,14 +209,14 @@ export function ServicesTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                       <DropdownMenuItem asChild>
-                        <Link href={`/admin/services/${service.id}/edit`}>
+                        <Link href={`/admin/case-studies/${caseStudy.id}/edit`}>
                           Edit
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
                         variant="destructive"
-                        onClick={() => handleDelete(service)}
+                        onClick={() => handleDelete(caseStudy)}
                       >
                         Delete
                       </DropdownMenuItem>
@@ -230,19 +229,19 @@ export function ServicesTable({
         </Table>
 
         {/* Empty State */}
-        {services.length === 0 && (
+        {caseStudies.length === 0 && (
           <div className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-gray-300" />
             <h3 className="mt-4 text-sm font-medium text-gray-900">
-              No services
+              No case studies
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by creating a new service.
+              Get started by creating a new case study.
             </p>
             <Button asChild className="mt-4 bg-indigo-600 hover:bg-indigo-700">
-              <Link href="/admin/services/new">
+              <Link href="/admin/case-studies/new">
                 <Plus className="h-4 w-4" />
-                Add Service
+                Add Case Study
               </Link>
             </Button>
           </div>
@@ -253,7 +252,7 @@ export function ServicesTable({
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Service</DialogTitle>
+            <DialogTitle>Delete Case Study</DialogTitle>
             <DialogDescription>
               Are you sure you want to delete &quot;{deleteTarget?.title}&quot;?
               This action cannot be undone.
