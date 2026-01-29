@@ -71,8 +71,15 @@ You can find these values in your Supabase project dashboard under **Settings > 
 Run the following SQL in your Supabase SQL Editor:
 
 ```sql
--- Users table (managed by Supabase Auth, but for reference)
--- Supabase Auth handles user management automatically
+-- Users table
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT DEFAULT 'admin',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- Services table
 CREATE TABLE services (
@@ -154,6 +161,7 @@ CREATE TABLE contact_submissions (
 
 ```sql
 -- Enable RLS on all tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE case_studies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE working_processes ENABLE ROW LEVEL SECURITY;
@@ -172,6 +180,7 @@ CREATE POLICY "Public read access" ON testimonials FOR SELECT USING (is_active =
 CREATE POLICY "Public insert access" ON contact_submissions FOR INSERT WITH CHECK (true);
 
 -- Authenticated users (admin) have full access
+CREATE POLICY "Admin full access" ON users FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin full access" ON services FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin full access" ON case_studies FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin full access" ON working_processes FOR ALL USING (auth.role() = 'authenticated');
@@ -185,6 +194,12 @@ CREATE POLICY "Admin full access" ON contact_submissions FOR ALL USING (auth.rol
 Run the following SQL to insert sample data:
 
 ```sql
+-- Seed Admin User (1 item)
+-- Note: Password hash is for 'Admin123!' using bcrypt
+-- The actual authentication is handled by Supabase Auth (see step 6)
+INSERT INTO users (email, password_hash, role) VALUES
+('admin@positivus.com', '$2a$10$PwJpXvFz3g8ZkQZJqK5HXuVJYvBhqXCQVHNBKQPZ6TpGkVqLqBnPy', 'admin');
+
 -- Seed Services (4 items)
 INSERT INTO services (title, description, sort_order, is_active) VALUES
 ('Search Engine Optimization', 'Boost your online visibility and drive organic traffic with our expert SEO strategies tailored to your business goals.', 1, true),
@@ -218,15 +233,17 @@ INSERT INTO testimonials (name, role_company, message, rating, sort_order, is_ac
 ('Emily Brown', 'Founder at StartupX', 'Professional, responsive, and results-driven. Highly recommend their services to any business looking to grow online.', 5, 3, true);
 ```
 
-### 6. Create Admin User
+### 6. Create Admin User in Supabase Auth
 
-In your Supabase dashboard:
+The seed data above creates a record in the `users` table. You also need to create the user in Supabase Auth for login to work:
 
-1. Go to **Authentication > Users**
-2. Click **Add User**
-3. Enter the admin credentials:
+1. Go to your Supabase dashboard
+2. Navigate to **Authentication > Users**
+3. Click **Add User** → **Create new user**
+4. Enter the admin credentials:
    - **Email**: `admin@positivus.com`
    - **Password**: `Admin123!`
+5. Click **Create user**
 
 **Admin Credentials:**
 
@@ -234,6 +251,8 @@ In your Supabase dashboard:
 Email: admin@positivus.com
 Password: Admin123!
 ```
+
+> **Note**: The `users` table stores user metadata as required by the exam schema, while Supabase Auth handles the actual authentication (password verification, session management, JWT tokens).
 
 ### 7. Run the Development Server
 
