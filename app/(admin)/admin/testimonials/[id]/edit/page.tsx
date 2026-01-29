@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft, Loader2, Trash2, Star } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,25 +27,46 @@ import type { Tables } from "@/lib/database.types";
 // Testimonial type from database
 type Testimonial = Tables<"testimonials">;
 
-// Form data type for controlled inputs
-interface FormData {
-  name: string;
-  role_company: string;
-  message: string;
-  avatar_url: string;
-  rating: number;
-  sort_order: number;
-  is_active: boolean;
+// Helper function to validate URL
+function isValidUrl(str: string): boolean {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-interface FormErrors {
-  name?: string;
-  role_company?: string;
-  message?: string;
-  avatar_url?: string;
-  rating?: string;
-  sort_order?: string;
-}
+// Zod schema for form validation
+const testimonialSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters"),
+  role_company: z
+    .string()
+    .min(1, "Role/Company is required")
+    .max(150, "Role/Company must be less than 150 characters"),
+  message: z
+    .string()
+    .min(1, "Message is required")
+    .max(1000, "Message must be less than 1000 characters"),
+  avatar_url: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === "" || isValidUrl(val),
+      "Please enter a valid URL"
+    ),
+  rating: z.coerce
+    .number()
+    .min(1, "Rating must be between 1 and 5")
+    .max(5, "Rating must be between 1 and 5"),
+  sort_order: z.coerce.number().min(0, "Sort order must be 0 or greater"),
+  is_active: z.boolean(),
+});
+
+type TestimonialFormData = z.infer<typeof testimonialSchema>;
 
 export default function EditTestimonialPage() {
   const router = useRouter();
@@ -51,25 +75,37 @@ export default function EditTestimonialPage() {
 
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Form state
+  // Testimonial state
   const [testimonial, setTestimonial] = useState<Testimonial | null>(null);
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    role_company: "",
-    message: "",
-    avatar_url: "",
-    rating: 5,
-    sort_order: 0,
-    is_active: true,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const supabase = createClient();
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm({
+    resolver: zodResolver(testimonialSchema),
+    defaultValues: {
+      name: "",
+      role_company: "",
+      message: "",
+      avatar_url: "",
+      rating: 5,
+      sort_order: 0,
+      is_active: true,
+    },
+    mode: "onBlur",
+  });
+
+  const isActive = watch("is_active");
+  const rating = watch("rating");
 
   // Fetch testimonial data
   useEffect(() => {
@@ -96,7 +132,7 @@ export default function EditTestimonialPage() {
         }
 
         setTestimonial(data);
-        setFormData({
+        reset({
           name: data.name,
           role_company: data.role_company,
           message: data.message,
@@ -115,153 +151,20 @@ export default function EditTestimonialPage() {
     };
 
     fetchTestimonial();
-  }, [testimonialId, router, supabase]);
+  }, [testimonialId, router, supabase, reset]);
 
-  const validateField = (
-    name: keyof FormData,
-    value: string | number | boolean
-  ): string | undefined => {
-    switch (name) {
-      case "name":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Name is required";
-        }
-        if (typeof value === "string" && value.length > 100) {
-          return "Name must be less than 100 characters";
-        }
-        break;
-      case "role_company":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Role/Company is required";
-        }
-        if (typeof value === "string" && value.length > 150) {
-          return "Role/Company must be less than 150 characters";
-        }
-        break;
-      case "message":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Message is required";
-        }
-        if (typeof value === "string" && value.length > 1000) {
-          return "Message must be less than 1000 characters";
-        }
-        break;
-      case "avatar_url":
-        if (typeof value === "string" && value.trim() !== "") {
-          try {
-            new URL(value);
-          } catch {
-            return "Please enter a valid URL";
-          }
-        }
-        break;
-      case "rating":
-        if (typeof value === "number" && (value < 1 || value > 5)) {
-          return "Rating must be between 1 and 5";
-        }
-        break;
-      case "sort_order":
-        if (typeof value === "number" && value < 0) {
-          return "Sort order must be 0 or greater";
-        }
-        break;
-    }
-    return undefined;
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {
-      name: validateField("name", formData.name),
-      role_company: validateField("role_company", formData.role_company),
-      message: validateField("message", formData.message),
-      avatar_url: validateField("avatar_url", formData.avatar_url),
-      rating: validateField("rating", formData.rating),
-      sort_order: validateField("sort_order", formData.sort_order),
-    };
-
-    setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== undefined);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const newValue = type === "number" ? parseInt(value) || 0 : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Validate on change if field has been touched
-    if (touched[name]) {
-      const error = validateField(name as keyof FormData, newValue);
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }));
-    }
-  };
-
-  const handleBlur = (name: string) => {
-    setTouched((prev) => ({
-      ...prev,
-      [name]: true,
-    }));
-
-    const value = formData[name as keyof FormData];
-    const error = validateField(name as keyof FormData, value);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      is_active: checked,
-    }));
-  };
-
-  const handleRatingChange = (rating: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      rating,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Mark all fields as touched
-    setTouched({
-      name: true,
-      role_company: true,
-      message: true,
-      avatar_url: true,
-      rating: true,
-      sort_order: true,
-    });
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: TestimonialFormData) => {
     try {
       const { error } = await supabase
         .from("testimonials")
         .update({
-          name: formData.name,
-          role_company: formData.role_company,
-          message: formData.message,
-          avatar_url: formData.avatar_url || null,
-          rating: formData.rating,
-          sort_order: formData.sort_order,
-          is_active: formData.is_active,
+          name: data.name,
+          role_company: data.role_company,
+          message: data.message,
+          avatar_url: data.avatar_url || null,
+          rating: data.rating,
+          sort_order: data.sort_order,
+          is_active: data.is_active,
           updated_at: new Date().toISOString(),
         })
         .eq("id", testimonialId);
@@ -277,8 +180,6 @@ export default function EditTestimonialPage() {
     } catch (error) {
       console.error("Error updating testimonial:", error);
       toast.error("Failed to update testimonial. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -308,11 +209,6 @@ export default function EditTestimonialPage() {
       setIsDeleting(false);
     }
   };
-
-  const isFormValid =
-    formData.name.trim() !== "" &&
-    formData.role_company.trim() !== "" &&
-    formData.message.trim() !== "";
 
   // Loading state
   if (isLoading) {
@@ -369,7 +265,7 @@ export default function EditTestimonialPage() {
         {/* Form Card */}
         <div className="mx-auto max-w-2xl">
           <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Name Field */}
               <div className="space-y-2">
                 <Label
@@ -380,11 +276,7 @@ export default function EditTestimonialPage() {
                 </Label>
                 <Input
                   id="name"
-                  name="name"
                   type="text"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("name")}
                   placeholder="e.g., John Doe"
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
@@ -395,10 +287,11 @@ export default function EditTestimonialPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("name")}
                 />
                 {errors.name && (
                   <p id="name-error" className="text-sm text-red-500">
-                    {errors.name}
+                    {errors.name.message}
                   </p>
                 )}
               </div>
@@ -413,11 +306,7 @@ export default function EditTestimonialPage() {
                 </Label>
                 <Input
                   id="role_company"
-                  name="role_company"
                   type="text"
-                  value={formData.role_company}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("role_company")}
                   placeholder="e.g., CEO at Acme Inc."
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
@@ -430,10 +319,11 @@ export default function EditTestimonialPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("role_company")}
                 />
                 {errors.role_company && (
                   <p id="role_company-error" className="text-sm text-red-500">
-                    {errors.role_company}
+                    {errors.role_company.message}
                   </p>
                 )}
               </div>
@@ -448,10 +338,6 @@ export default function EditTestimonialPage() {
                 </Label>
                 <Textarea
                   id="message"
-                  name="message"
-                  value={formData.message}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("message")}
                   placeholder="What did they say about your service?"
                   rows={4}
                   disabled={isSubmitting || isDeleting}
@@ -465,10 +351,11 @@ export default function EditTestimonialPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("message")}
                 />
                 {errors.message && (
                   <p id="message-error" className="text-sm text-red-500">
-                    {errors.message}
+                    {errors.message.message}
                   </p>
                 )}
               </div>
@@ -483,11 +370,7 @@ export default function EditTestimonialPage() {
                 </Label>
                 <Input
                   id="avatar_url"
-                  name="avatar_url"
                   type="text"
-                  value={formData.avatar_url}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("avatar_url")}
                   placeholder="https://example.com/avatar.jpg"
                   disabled={isSubmitting || isDeleting}
                   aria-invalid={!!errors.avatar_url}
@@ -499,10 +382,11 @@ export default function EditTestimonialPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("avatar_url")}
                 />
                 {errors.avatar_url ? (
                   <p id="avatar_url-error" className="text-sm text-red-500">
-                    {errors.avatar_url}
+                    {errors.avatar_url.message}
                   </p>
                 ) : (
                   <p id="avatar_url-helper" className="text-sm text-gray-500">
@@ -521,13 +405,13 @@ export default function EditTestimonialPage() {
                     <button
                       key={star}
                       type="button"
-                      onClick={() => handleRatingChange(star)}
+                      onClick={() => setValue("rating", star)}
                       disabled={isSubmitting || isDeleting}
-                      className="p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 rounded disabled:opacity-50"
+                      className="rounded p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
                     >
                       <Star
                         className={`h-8 w-8 ${
-                          star <= formData.rating
+                          star <= (rating as number)
                             ? "fill-yellow-400 text-yellow-400"
                             : "fill-gray-200 text-gray-200"
                         }`}
@@ -535,11 +419,13 @@ export default function EditTestimonialPage() {
                     </button>
                   ))}
                   <span className="ml-2 text-sm text-gray-500">
-                    {formData.rating} / 5
+                    {rating as number} / 5
                   </span>
                 </div>
                 {errors.rating && (
-                  <p className="text-sm text-red-500">{errors.rating}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.rating.message}
+                  </p>
                 )}
               </div>
 
@@ -553,11 +439,7 @@ export default function EditTestimonialPage() {
                 </Label>
                 <Input
                   id="sort_order"
-                  name="sort_order"
                   type="number"
-                  value={formData.sort_order}
-                  onChange={handleInputChange}
-                  onBlur={() => handleBlur("sort_order")}
                   min={0}
                   disabled={isSubmitting || isDeleting}
                   aria-required="true"
@@ -568,9 +450,12 @@ export default function EditTestimonialPage() {
                       ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                       : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                   }`}
+                  {...register("sort_order")}
                 />
                 {errors.sort_order ? (
-                  <p className="text-sm text-red-500">{errors.sort_order}</p>
+                  <p className="text-sm text-red-500">
+                    {errors.sort_order.message}
+                  </p>
                 ) : (
                   <p id="sort_order-helper" className="text-sm text-gray-500">
                     Lower numbers appear first in the list
@@ -586,8 +471,10 @@ export default function EditTestimonialPage() {
                 <div className="flex items-start space-x-3">
                   <Checkbox
                     id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={handleCheckboxChange}
+                    checked={isActive}
+                    onCheckedChange={(checked) =>
+                      setValue("is_active", checked === true)
+                    }
                     disabled={isSubmitting || isDeleting}
                     className="mt-0.5 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                   />
@@ -632,7 +519,7 @@ export default function EditTestimonialPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting || isDeleting || !isFormValid}
+                    disabled={isSubmitting || isDeleting || !isValid}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
                   >
                     {isSubmitting ? (
