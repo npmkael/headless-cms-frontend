@@ -4,59 +4,107 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
-
 import { toast } from "sonner";
 
-// TODO: Semantic HTML
-// TODO: Add illustration if have extra time to do it
+// Zod schema for login form validation
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Zod schema for forgot password form validation
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
   const [showPassword, setShowPassword] = useState(false);
-  const [currentView, setCurrentView] = useState<
-    "login" | "forgot" | "register"
-  >("login");
+  const [currentView, setCurrentView] = useState<"login" | "forgot">("login");
 
   const router = useRouter();
   const supabase = createClient();
 
-  const handleLogin = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // Login form
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    mode: "onBlur",
+  });
 
+  // Forgot password form
+  const forgotForm = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: "",
+    },
+    mode: "onBlur",
+  });
+
+  const handleLogin = async (data: LoginFormData) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       });
 
       if (error) {
         toast.error(error.message);
-        throw error;
+        return;
       }
 
       router.push("/admin/services");
       router.refresh();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Login error:", error);
       toast.error("An error occurred during login. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  const handleForgotPassword = async (data: ForgotPasswordFormData) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: `${window.location.origin}/admin/reset-password`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Password reset link sent! Check your email.");
+    } catch (error: unknown) {
+      console.error("Forgot password error:", error);
+      toast.error("An error occurred. Please try again.");
+    }
+  };
+
+  const isLoginSubmitting = loginForm.formState.isSubmitting;
+  const isForgotSubmitting = forgotForm.formState.isSubmitting;
+  const isLoading = isLoginSubmitting || isForgotSubmitting;
+
   return (
-    <div className="min-h-screen flex">
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-main">
-        <div className="relative z-10 flex flex-col justify-between w-full px-12 py-12">
+    <div className="flex min-h-screen">
+      <div className="relative hidden overflow-hidden bg-main lg:flex lg:w-1/2">
+        <div className="relative z-10 flex w-full flex-col justify-between px-12 py-12">
           <div className="flex items-center gap-2">
             <Image
               src="/logo/logo.svg"
@@ -67,16 +115,7 @@ export default function LoginPage() {
             <h1 className="text-2xl font-semibold text-black">Positivus</h1>
           </div>
 
-          {/* <div className="flex-1 flex flex-col justify-center">
-            <h2 className="text-4xl text-black mb-6 leading-tight">
-              Effortlessly manage your team and operations.
-            </h2>
-            <p className="text-black/80 text-lg leading-relaxed">
-              Log in to access your CRM dashboard and manage your team.
-            </p>
-          </div> */}
-
-          <div className="flex justify-between items-center text-black/70 text-sm">
+          <div className="flex items-center justify-between text-sm text-black/70">
             <span>Copyright © 2025 Positivus Enterprises LTD.</span>
             <span className="cursor-pointer hover:text-black/90">
               Privacy Policy
@@ -85,10 +124,10 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+      <div className="flex w-full items-center justify-center bg-white p-8 lg:w-1/2">
         <div className="w-full max-w-md space-y-8">
-          <div className="lg:hidden text-center mb-8">
-            <div className="flex items-center gap-2 justify-center mx-auto mb-3">
+          <div className="mb-8 text-center lg:hidden">
+            <div className="mx-auto mb-3 flex items-center justify-center gap-2">
               <Image
                 src="/logo/logo.svg"
                 alt="Positivus"
@@ -99,49 +138,41 @@ export default function LoginPage() {
             <h1 className="text-2xl font-semibold text-black">Positivus</h1>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2 text-center">
-              {currentView === "forgot" && (
-                <Button
-                  variant="ghost"
-                  onClick={() => setCurrentView("login")}
-                  className="absolute left-8 top-8 p-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              <h2 className="text-3xl text-foreground">
-                {currentView === "login" && "Admin Login"}
-                {currentView === "forgot" && "Reset Password"}
-              </h2>
-              <p className="text-muted-foreground">
-                {currentView === "login" &&
-                  "Enter your admin credentials to access the dashboard."}
-                {currentView === "forgot" &&
-                  "Enter your email address and we'll send you a reset link."}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  disabled={isLoading}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="user@company.com"
-                  className="h-12 border-gray-200 focus:ring-0 shadow-none rounded-lg bg-white focus:border-[#3F3FF3]"
-                />
+          {currentView === "login" ? (
+            <form
+              onSubmit={loginForm.handleSubmit(handleLogin)}
+              className="space-y-6"
+            >
+              <div className="space-y-2 text-center">
+                <h2 className="text-3xl text-foreground">Admin Login</h2>
+                <p className="text-muted-foreground">
+                  Enter your admin credentials to access the dashboard.
+                </p>
               </div>
 
-              {currentView !== "forgot" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    disabled={isLoading}
+                    placeholder="user@company.com"
+                    className="h-12 rounded-lg border-gray-200 bg-white shadow-none focus:border-[#3F3FF3] focus:ring-0"
+                    {...loginForm.register("email")}
+                  />
+                  {loginForm.formState.errors.email && (
+                    <p className="text-sm text-red-500">
+                      {loginForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   <Label
                     htmlFor="password"
@@ -153,17 +184,16 @@ export default function LoginPage() {
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
                       disabled={isLoading}
                       placeholder="Enter password"
-                      className="h-12 pr-10 border-gray-200 focus:ring-0 shadow-none rounded-lg bg-white focus:border-[#3F3FF3]"
+                      className="h-12 rounded-lg border-gray-200 bg-white pr-10 shadow-none focus:border-[#3F3FF3] focus:ring-0"
+                      {...loginForm.register("password")}
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
+                      className="absolute right-0 top-0 h-full cursor-pointer px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -173,63 +203,120 @@ export default function LoginPage() {
                       )}
                     </Button>
                   </div>
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm text-red-500">
+                      {loginForm.formState.errors.password.message}
+                    </p>
+                  )}
                 </div>
-              )}
 
-              {currentView === "login" && (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="remember"
-                      className="rounded border-gray-300 cursor-pointer"
+                      className="cursor-pointer rounded border-gray-300"
                     />
                     <Label
                       htmlFor="remember"
-                      className="text-sm text-muted-foreground cursor-pointer"
+                      className="cursor-pointer text-sm text-muted-foreground"
                     >
                       Remember Me
                     </Label>
                   </div>
                   <Button
+                    type="button"
                     variant="link"
-                    className="p-0 h-auto text-sm hover:text-opacity-80 cursor-pointer"
+                    className="h-auto cursor-pointer p-0 text-sm hover:text-opacity-80"
                     onClick={() => setCurrentView("forgot")}
                   >
                     Forgot Your Password?
                   </Button>
                 </div>
-              )}
-            </div>
+              </div>
 
-            <Button
-              className="w-full h-12 text-sm font-medium text-white hover:opacity-90 rounded-lg shadow-none cursor-pointer"
-              disabled={isLoading}
-              type="submit"
+              <Button
+                className="h-12 w-full cursor-pointer rounded-lg text-sm font-medium text-white shadow-none hover:opacity-90"
+                disabled={isLoading}
+                type="submit"
+              >
+                {isLoginSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Log In"
+                )}
+              </Button>
+            </form>
+          ) : (
+            <form
+              onSubmit={forgotForm.handleSubmit(handleForgotPassword)}
+              className="space-y-6"
             >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : currentView === "login" ? (
-                "Log In"
-              ) : (
-                "Send Reset Link"
-              )}
-            </Button>
+              <div className="space-y-2 text-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setCurrentView("login")}
+                  className="absolute left-8 top-8 cursor-pointer p-2 hover:bg-gray-100"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <h2 className="text-3xl text-foreground">Reset Password</h2>
+                <p className="text-muted-foreground">
+                  Enter your email address and we&apos;ll send you a reset link.
+                </p>
+              </div>
 
-            {currentView === "forgot" && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="forgot-email"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Email
+                  </Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    disabled={isLoading}
+                    placeholder="user@company.com"
+                    className="h-12 rounded-lg border-gray-200 bg-white shadow-none focus:border-[#3F3FF3] focus:ring-0"
+                    {...forgotForm.register("email")}
+                  />
+                  {forgotForm.formState.errors.email && (
+                    <p className="text-sm text-red-500">
+                      {forgotForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <Button
+                className="h-12 w-full cursor-pointer rounded-lg text-sm font-medium text-white shadow-none hover:opacity-90"
+                disabled={isLoading}
+                type="submit"
+              >
+                {isForgotSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Send Reset Link"
+                )}
+              </Button>
+
               <div className="text-center text-sm text-muted-foreground">
                 Remember Your Password?{" "}
                 <Button
+                  type="button"
                   variant="link"
-                  className="p-0 h-auto text-sm hover:text-opacity-80 font-medium cursor-pointer"
+                  className="h-auto cursor-pointer p-0 text-sm font-medium hover:text-opacity-80"
                   style={{ color: "#3F3FF3" }}
                   onClick={() => setCurrentView("login")}
                 >
                   Back to Login.
                 </Button>
               </div>
-            )}
-          </form>
+            </form>
+          )}
         </div>
       </div>
     </div>
