@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,169 +14,90 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
-// Form data type for controlled inputs
-interface FormData {
-  name: string;
-  role: string;
-  avatar_url: string;
-  socials_json: string;
-  sort_order: number;
-  is_active: boolean;
+// Helper function to validate URL
+function isValidUrl(str: string): boolean {
+  try {
+    new URL(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-interface FormErrors {
-  name?: string;
-  role?: string;
-  avatar_url?: string;
-  socials_json?: string;
-  sort_order?: string;
+// Helper function to validate JSON
+function isValidJson(str: string): boolean {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch {
+    return false;
+  }
 }
+
+// Zod schema for form validation
+const teamMemberSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters"),
+  role: z
+    .string()
+    .min(1, "Role is required")
+    .max(100, "Role must be less than 100 characters"),
+  avatar_url: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === "" || isValidUrl(val),
+      "Please enter a valid URL"
+    ),
+  socials_json: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val.trim() === "" || isValidJson(val),
+      "Please enter valid JSON"
+    ),
+  sort_order: z.coerce.number().min(0, "Sort order must be 0 or greater"),
+  is_active: z.boolean(),
+});
+
+type TeamMemberFormData = z.infer<typeof teamMemberSchema>;
 
 export default function NewTeamMemberPage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    name: "",
-    role: "",
-    avatar_url: "",
-    socials_json: "",
-    sort_order: 0,
-    is_active: true,
-  });
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-
   const supabase = createClient();
 
-  const validateField = (
-    name: keyof FormData,
-    value: string | number | boolean
-  ): string | undefined => {
-    switch (name) {
-      case "name":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Name is required";
-        }
-        if (typeof value === "string" && value.length > 100) {
-          return "Name must be less than 100 characters";
-        }
-        break;
-      case "role":
-        if (!value || (typeof value === "string" && value.trim() === "")) {
-          return "Role is required";
-        }
-        if (typeof value === "string" && value.length > 100) {
-          return "Role must be less than 100 characters";
-        }
-        break;
-      case "avatar_url":
-        if (typeof value === "string" && value.trim() !== "") {
-          try {
-            new URL(value);
-          } catch {
-            return "Please enter a valid URL";
-          }
-        }
-        break;
-      case "socials_json":
-        if (typeof value === "string" && value.trim() !== "") {
-          try {
-            JSON.parse(value);
-          } catch {
-            return "Please enter valid JSON";
-          }
-        }
-        break;
-      case "sort_order":
-        if (typeof value === "number" && value < 0) {
-          return "Sort order must be 0 or greater";
-        }
-        break;
-    }
-    return undefined;
-  };
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting, isValid },
+  } = useForm({
+    resolver: zodResolver(teamMemberSchema),
+    defaultValues: {
+      name: "",
+      role: "",
+      avatar_url: "",
+      socials_json: "",
+      sort_order: 0,
+      is_active: true,
+    },
+    mode: "onBlur",
+  });
 
-  const validateForm = (): boolean => {
-    const newErrors: FormErrors = {
-      name: validateField("name", formData.name),
-      role: validateField("role", formData.role),
-      avatar_url: validateField("avatar_url", formData.avatar_url),
-      socials_json: validateField("socials_json", formData.socials_json),
-      sort_order: validateField("sort_order", formData.sort_order),
-    };
+  const isActive = watch("is_active");
 
-    setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== undefined);
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type } = e.target;
-    const newValue = type === "number" ? parseInt(value) || 0 : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Validate on change if field has been touched
-    if (touched[name]) {
-      const error = validateField(name as keyof FormData, newValue);
-      setErrors((prev) => ({
-        ...prev,
-        [name]: error,
-      }));
-    }
-  };
-
-  const handleBlur = (name: string) => {
-    setTouched((prev) => ({
-      ...prev,
-      [name]: true,
-    }));
-
-    const value = formData[name as keyof FormData];
-    const error = validateField(name as keyof FormData, value);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
-  };
-
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData((prev) => ({
-      ...prev,
-      is_active: checked,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Mark all fields as touched
-    setTouched({
-      name: true,
-      role: true,
-      avatar_url: true,
-      socials_json: true,
-      sort_order: true,
-    });
-
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: TeamMemberFormData) => {
     try {
       const { error } = await supabase.from("team_members").insert({
-        name: formData.name,
-        role: formData.role,
-        avatar_url: formData.avatar_url || null,
-        socials_json: formData.socials_json || null,
-        sort_order: formData.sort_order,
-        is_active: formData.is_active,
+        name: data.name,
+        role: data.role,
+        avatar_url: data.avatar_url || null,
+        socials_json: data.socials_json || null,
+        sort_order: data.sort_order,
+        is_active: data.is_active,
       });
 
       if (error) {
@@ -188,13 +111,8 @@ export default function NewTeamMemberPage() {
     } catch (error) {
       console.error("Error creating team member:", error);
       toast.error("Failed to create team member. Please try again.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  const isFormValid =
-    formData.name.trim() !== "" && formData.role.trim() !== "";
 
   return (
     <div className="px-4 lg:px-6">
@@ -218,7 +136,7 @@ export default function NewTeamMemberPage() {
       {/* Form Card */}
       <div className="mx-auto max-w-2xl">
         <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Name Field */}
             <div className="space-y-2">
               <Label
@@ -229,11 +147,7 @@ export default function NewTeamMemberPage() {
               </Label>
               <Input
                 id="name"
-                name="name"
                 type="text"
-                value={formData.name}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("name")}
                 placeholder="e.g., John Doe"
                 disabled={isSubmitting}
                 aria-required="true"
@@ -244,10 +158,11 @@ export default function NewTeamMemberPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("name")}
               />
               {errors.name && (
                 <p id="name-error" className="text-sm text-red-500">
-                  {errors.name}
+                  {errors.name.message}
                 </p>
               )}
             </div>
@@ -262,11 +177,7 @@ export default function NewTeamMemberPage() {
               </Label>
               <Input
                 id="role"
-                name="role"
                 type="text"
-                value={formData.role}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("role")}
                 placeholder="e.g., Senior Developer"
                 disabled={isSubmitting}
                 aria-required="true"
@@ -277,10 +188,11 @@ export default function NewTeamMemberPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("role")}
               />
               {errors.role && (
                 <p id="role-error" className="text-sm text-red-500">
-                  {errors.role}
+                  {errors.role.message}
                 </p>
               )}
             </div>
@@ -295,11 +207,7 @@ export default function NewTeamMemberPage() {
               </Label>
               <Input
                 id="avatar_url"
-                name="avatar_url"
                 type="text"
-                value={formData.avatar_url}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("avatar_url")}
                 placeholder="https://example.com/avatar.jpg"
                 disabled={isSubmitting}
                 aria-invalid={!!errors.avatar_url}
@@ -311,10 +219,11 @@ export default function NewTeamMemberPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("avatar_url")}
               />
               {errors.avatar_url ? (
                 <p id="avatar_url-error" className="text-sm text-red-500">
-                  {errors.avatar_url}
+                  {errors.avatar_url.message}
                 </p>
               ) : (
                 <p id="avatar_url-helper" className="text-sm text-gray-500">
@@ -333,10 +242,6 @@ export default function NewTeamMemberPage() {
               </Label>
               <Textarea
                 id="socials_json"
-                name="socials_json"
-                value={formData.socials_json}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("socials_json")}
                 placeholder='{"linkedin": "https://linkedin.com/in/...", "twitter": "https://twitter.com/..."}'
                 rows={3}
                 disabled={isSubmitting}
@@ -351,10 +256,11 @@ export default function NewTeamMemberPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("socials_json")}
               />
               {errors.socials_json ? (
                 <p id="socials_json-error" className="text-sm text-red-500">
-                  {errors.socials_json}
+                  {errors.socials_json.message}
                 </p>
               ) : (
                 <p id="socials_json-helper" className="text-sm text-gray-500">
@@ -373,11 +279,7 @@ export default function NewTeamMemberPage() {
               </Label>
               <Input
                 id="sort_order"
-                name="sort_order"
                 type="number"
-                value={formData.sort_order}
-                onChange={handleInputChange}
-                onBlur={() => handleBlur("sort_order")}
                 min={0}
                 disabled={isSubmitting}
                 aria-required="true"
@@ -388,9 +290,12 @@ export default function NewTeamMemberPage() {
                     ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20"
                     : "border-gray-200 focus-visible:border-indigo-500 focus-visible:ring-indigo-500/20"
                 }`}
+                {...register("sort_order")}
               />
               {errors.sort_order ? (
-                <p className="text-sm text-red-500">{errors.sort_order}</p>
+                <p className="text-sm text-red-500">
+                  {errors.sort_order.message}
+                </p>
               ) : (
                 <p id="sort_order-helper" className="text-sm text-gray-500">
                   Lower numbers appear first in the list
@@ -406,15 +311,17 @@ export default function NewTeamMemberPage() {
               <div className="flex items-start space-x-3">
                 <Checkbox
                   id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={handleCheckboxChange}
+                  checked={isActive}
+                  onCheckedChange={(checked) =>
+                    setValue("is_active", checked === true)
+                  }
                   disabled={isSubmitting}
                   className="mt-0.5 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
                 />
                 <div className="space-y-1">
                   <Label
                     htmlFor="is_active"
-                    className="text-sm font-medium text-gray-900 cursor-pointer"
+                    className="cursor-pointer text-sm font-medium text-gray-900"
                   >
                     Active
                   </Label>
@@ -438,7 +345,7 @@ export default function NewTeamMemberPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !isFormValid}
+                disabled={isSubmitting || !isValid}
                 className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 sm:w-auto"
               >
                 {isSubmitting ? (
