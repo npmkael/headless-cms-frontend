@@ -68,8 +68,8 @@ const data = {
       icon: IconUsers,
     },
     {
-      title: "Contacts",
-      url: "/admin/contacts",
+      title: "Contact Submissions",
+      url: "/admin/contact-submissions",
       icon: IconMail,
     },
   ],

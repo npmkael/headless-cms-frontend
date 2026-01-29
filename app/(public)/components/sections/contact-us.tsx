@@ -2,6 +2,9 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 export default function ContactUs() {
   const [formType, setFormType] = useState<"sayHi" | "getQuote">("sayHi");
@@ -10,10 +13,38 @@ export default function ContactUs() {
     email: "",
     message: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const supabase = createClient();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({ formType, ...formData });
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase.from("contact_submissions").insert({
+        name: formData.name,
+        email: formData.email,
+        message: `[${formType === "sayHi" ? "Say Hi" : "Get a Quote"}] ${
+          formData.message
+        }`,
+        status: "new",
+      });
+
+      if (error) {
+        console.error("Error submitting contact form:", error);
+        toast.error("Failed to send message. Please try again.");
+        return;
+      }
+
+      toast.success("Message sent successfully! We'll get back to you soon.");
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,17 +119,19 @@ export default function ContactUs() {
             {/* Name Field */}
             <div className="space-y-2">
               <label htmlFor="name" className="block text-sm font-medium">
-                Name
+                Name<span className="text-black">*</span>
               </label>
               <input
                 type="text"
                 id="name"
                 placeholder="Name"
+                required
+                disabled={isSubmitting}
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                className="w-full px-4 py-3 bg-white border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-main/50"
+                className="w-full px-4 py-3 bg-white border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-main/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -112,11 +145,12 @@ export default function ContactUs() {
                 id="email"
                 placeholder="Email"
                 required
+                disabled={isSubmitting}
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className="w-full px-4 py-3 bg-white border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-main/50"
+                className="w-full px-4 py-3 bg-white border border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-main/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -129,21 +163,30 @@ export default function ContactUs() {
                 id="message"
                 placeholder="Message"
                 required
+                disabled={isSubmitting}
                 rows={5}
                 value={formData.message}
                 onChange={(e) =>
                   setFormData({ ...formData, message: e.target.value })
                 }
-                className="w-full px-4 py-3 bg-white border border-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-main/50"
+                className="w-full px-4 py-3 bg-white border border-black rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-main/50 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-black/90 transition-colors"
+              disabled={isSubmitting}
+              className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-black/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Send Message
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Message"
+              )}
             </button>
           </form>
 
