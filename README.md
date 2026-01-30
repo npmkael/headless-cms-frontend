@@ -44,7 +44,7 @@ Visit [http://localhost:3000](http://localhost:3000)
 ## Admin Credentials
 
 ```
-Email: admin@example.com
+Email: admin@positivus.com
 Password: admin123
 ```
 
@@ -58,4 +58,9 @@ npm start
 ```
 
 ## Screenshots
+
+Landing Page
 <img width="1920" height="6339" alt="Image" src="https://github.com/user-attachments/assets/36b00f3c-40da-4ed7-8e2a-50f0b8533940" />
+
+Login page
+<img width="1920" height="943" alt="Image" src="https://github.com/user-attachments/assets/c51d5064-662d-4eee-b3af-05745608c0eb" />
