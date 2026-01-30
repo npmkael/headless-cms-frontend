@@ -59,13 +59,13 @@ npm start
 
 ## Screenshots
 
-# Landing Page
+### Landing Page
 <img width="1920" height="6339" alt="Image" src="https://github.com/user-attachments/assets/36b00f3c-40da-4ed7-8e2a-50f0b8533940" />
 
-# Login page
+### Login page
 <img width="1920" height="943" alt="Image" src="https://github.com/user-attachments/assets/c51d5064-662d-4eee-b3af-05745608c0eb" />
 
-# Admin Dashboard
+### Admin Dashboard
 <img width="1905" height="948" alt="Image" src="https://github.com/user-attachments/assets/a05036bc-3a36-4da9-bb3d-15cf2ddefabf" />
 
 <img width="1896" height="942" alt="Image" src="https://github.com/user-attachments/assets/59e02d63-763e-4861-a3c7-c1124b4f759e" />
