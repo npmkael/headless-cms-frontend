@@ -30,12 +30,13 @@ import {
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import { uploadImage } from "../actions";
+
 import {
   createCaseStudy,
   updateCaseStudy,
   deleteCaseStudy,
-  uploadImage,
-} from "../actions";
+} from "@/app/actions/case-study.actions";
 
 // Types
 export type CaseStudy = Tables<"case_studies">;

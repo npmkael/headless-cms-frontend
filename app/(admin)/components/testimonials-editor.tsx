@@ -31,12 +31,13 @@ import {
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import { uploadImage } from "../actions";
+
 import {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
-  uploadImage,
-} from "../actions";
+} from "@/app/actions/testimonial.actions";
 
 // Types
 export type Testimonial = Tables<"testimonials">;

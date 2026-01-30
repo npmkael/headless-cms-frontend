@@ -31,11 +31,11 @@ import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
 import {
-  createTeamMember,
-  updateTeamMember,
   deleteTeamMember,
-  uploadImage,
-} from "../actions";
+  updateTeamMember,
+  createTeamMember,
+} from "@/app/actions/team-member.actions";
+import { uploadImage } from "../actions";
 
 // Types
 export type TeamMember = Tables<"team_members">;

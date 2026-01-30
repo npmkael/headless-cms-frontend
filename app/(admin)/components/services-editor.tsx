@@ -34,8 +34,8 @@ import {
   createService,
   updateService,
   deleteService,
-  uploadImage,
-} from "../actions";
+} from "@/app/actions/service.actions";
+import { uploadImage } from "../actions";
 
 // Types
 export type Service = Tables<"services">;
@@ -62,13 +62,13 @@ export function ServicesEditor({
 }) {
   const [services, setServices] = useState<Service[]>(initialServices);
   const [selectedId, setSelectedId] = useState<string | null>(
-    initialServices[0]?.id || null
+    initialServices[0]?.id || null,
   );
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previousSelectedId, setPreviousSelectedId] = useState<string | null>(
-    null
+    null,
   );
   const [deleteTarget, setDeleteTarget] = useState<Service | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -125,7 +125,7 @@ export function ServicesEditor({
   // Handle form field changes (only allowed in edit or create mode)
   const handleFieldChange = (
     field: keyof Service,
-    value: string | number | boolean | null
+    value: string | number | boolean | null,
   ) => {
     if (!isEditMode && !isCreateMode) return;
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -209,7 +209,7 @@ export function ServicesEditor({
       if (selectedImageFile) {
         const { url, error } = await uploadImage(
           selectedImageFile,
-          "cms-services-imgs"
+          "cms-services-imgs",
         );
         if (error || !url) {
           toast.error(error || "Failed to upload image");
@@ -244,8 +244,8 @@ export function ServicesEditor({
                   is_active: formData.is_active ?? false,
                   updated_at: new Date().toISOString(),
                 }
-              : s
-          )
+              : s,
+          ),
         );
 
         // Cleanup
@@ -331,7 +331,7 @@ export function ServicesEditor({
       if (selectedImageFile) {
         const { url, error } = await uploadImage(
           selectedImageFile,
-          "cms-services-imgs"
+          "cms-services-imgs",
         );
         if (error || !url) {
           toast.error(error || "Failed to upload image");
@@ -792,7 +792,7 @@ export function ServicesEditor({
                     onChange={(e) =>
                       handleFieldChange(
                         "sort_order",
-                        parseInt(e.target.value) || 0
+                        parseInt(e.target.value) || 0,
                       )
                     }
                     className={`h-10 w-32 ${
@@ -841,7 +841,7 @@ export function ServicesEditor({
                         <span className="ml-2 text-gray-700">
                           {selectedService.created_at
                             ? new Date(
-                                selectedService.created_at
+                                selectedService.created_at,
                               ).toLocaleDateString()
                             : "N/A"}
                         </span>

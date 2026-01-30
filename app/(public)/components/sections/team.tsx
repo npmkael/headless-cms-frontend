@@ -14,7 +14,6 @@ type TeamMember =
   | null;
 
 export default function Team({ teamMembers }: { teamMembers: TeamMember }) {
-  //  TODO: Add the image of the team with the flower shape
   return (
     <section
       className="flex flex-col items-center justify-center"

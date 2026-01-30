@@ -33,7 +33,7 @@ import {
   createWorkingProcess,
   updateWorkingProcess,
   deleteWorkingProcess,
-} from "../actions";
+} from "@/app/actions/working-process.actions";
 
 // Types
 export type WorkingProcess = Tables<"working_processes">;
