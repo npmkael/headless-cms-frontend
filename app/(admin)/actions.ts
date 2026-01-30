@@ -18,9 +18,14 @@ type ContactSubmission = Tables<"contact_submissions">;
 
 export async function uploadImage(
   file: File,
-  bucket: string = "cms-images"
+  bucket: string = "cms-images",
 ): Promise<{ url: string | null; error: string | null }> {
   try {
+    console.log("[uploadImage] Starting upload to bucket:", bucket);
+    console.log("[uploadImage] File name:", file.name);
+    console.log("[uploadImage] File size:", file.size);
+    console.log("[uploadImage] File type:", file.type);
+
     // Generate unique filename
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}-${Math.random()
@@ -28,9 +33,13 @@ export async function uploadImage(
       .substring(7)}.${fileExt}`;
     const filePath = fileName;
 
+    console.log("[uploadImage] Generated file path:", filePath);
+
     // Convert File to ArrayBuffer then to Buffer for upload
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+
+    console.log("[uploadImage] Buffer size:", buffer.length);
 
     // Upload to Supabase Storage
     const { data, error } = await supabaseAdmin.storage
@@ -41,18 +50,31 @@ export async function uploadImage(
       });
 
     if (error) {
-      console.error("Error uploading image:", error);
-      return { url: null, error: error.message };
+      console.error("[uploadImage] Supabase storage error:", error);
+      console.error(
+        "[uploadImage] Error details:",
+        JSON.stringify(error, null, 2),
+      );
+      return { url: null, error: `Storage error: ${error.message}` };
     }
+
+    if (!data) {
+      console.error("[uploadImage] No data returned from upload");
+      return { url: null, error: "No data returned from upload" };
+    }
+
+    console.log("[uploadImage] Upload successful, path:", data.path);
 
     // Get public URL
     const {
       data: { publicUrl },
     } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
 
+    console.log("[uploadImage] Public URL:", publicUrl);
+
     return { url: publicUrl, error: null };
   } catch (error) {
-    console.error("Error in uploadImage:", error);
+    console.error("[uploadImage] Caught exception:", error);
     return {
       url: null,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -62,7 +84,7 @@ export async function uploadImage(
 
 export async function deleteImageFromStorage(
   url: string,
-  bucket: string = "service-icons"
+  bucket: string = "service-icons",
 ): Promise<{ error: string | null }> {
   try {
     // Extract file path from URL
@@ -125,7 +147,7 @@ export async function updateService(
     icon_url: string | null;
     sort_order: number;
     is_active: boolean;
-  }
+  },
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("services")
@@ -146,7 +168,7 @@ export async function updateService(
 }
 
 export async function deleteService(
-  id: string
+  id: string,
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin.from("services").delete().eq("id", id);
 
@@ -197,7 +219,7 @@ export async function updateCaseStudy(
     link_url: string | null;
     sort_order: number;
     is_active: boolean;
-  }
+  },
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("case_studies")
@@ -218,7 +240,7 @@ export async function updateCaseStudy(
 }
 
 export async function deleteCaseStudy(
-  id: string
+  id: string,
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("case_studies")
@@ -270,7 +292,7 @@ export async function updateWorkingProcess(
     step_no: number;
     sort_order: number;
     is_active: boolean;
-  }
+  },
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("working_processes")
@@ -291,7 +313,7 @@ export async function updateWorkingProcess(
 }
 
 export async function deleteWorkingProcess(
-  id: string
+  id: string,
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("working_processes")
@@ -345,7 +367,7 @@ export async function updateTeamMember(
     socials_json: string | null;
     sort_order: number;
     is_active: boolean;
-  }
+  },
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("team_members")
@@ -366,7 +388,7 @@ export async function updateTeamMember(
 }
 
 export async function deleteTeamMember(
-  id: string
+  id: string,
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("team_members")
@@ -422,7 +444,7 @@ export async function updateTestimonial(
     rating: number | null;
     sort_order: number;
     is_active: boolean;
-  }
+  },
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("testimonials")
@@ -443,7 +465,7 @@ export async function updateTestimonial(
 }
 
 export async function deleteTestimonial(
-  id: string
+  id: string,
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("testimonials")
@@ -466,7 +488,7 @@ export async function deleteTestimonial(
 
 export async function updateContactSubmissionStatus(
   id: string,
-  status: string
+  status: string,
 ): Promise<{ error: string | null }> {
   const { error } = await supabaseAdmin
     .from("contact_submissions")

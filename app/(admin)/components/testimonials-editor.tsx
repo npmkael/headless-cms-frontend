@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   Loader2,
@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   MessageSquareQuote,
   Star,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +35,7 @@ import {
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  uploadImage,
 } from "../actions";
 
 // Types
@@ -103,18 +106,22 @@ export function TestimonialsEditor({
   const [testimonials, setTestimonials] =
     useState<Testimonial[]>(initialTestimonials);
   const [selectedId, setSelectedId] = useState<string | null>(
-    initialTestimonials[0]?.id || null
+    initialTestimonials[0]?.id || null,
   );
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [previousSelectedId, setPreviousSelectedId] = useState<string | null>(
-    null
+    null,
   );
   const [deleteTarget, setDeleteTarget] = useState<Testimonial | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state for selected testimonial
   const [formData, setFormData] = useState<Partial<Testimonial>>({});
@@ -146,16 +153,79 @@ export function TestimonialsEditor({
         sort_order: selectedTestimonial.sort_order,
         is_active: selectedTestimonial.is_active,
       });
+      setImageError(false);
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
     }
   }, [selectedId, selectedTestimonial, isCreateMode, isEditMode]);
+
+  // Cleanup preview URL when component unmounts or preview changes
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   // Handle form field changes (only allowed in edit or create mode)
   const handleFieldChange = (
     field: keyof Testimonial,
-    value: string | number | boolean | null
+    value: string | number | boolean | null,
   ) => {
     if (!isEditMode && !isCreateMode) return;
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handle image file selection (no upload yet)
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    // Cleanup previous preview URL if exists
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+
+    // Create preview URL for the selected file
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImageFile(file);
+    setImagePreviewUrl(previewUrl);
+    setImageError(false);
+
+    // Clear the avatar_url from formData since we have a new file
+    handleFieldChange("avatar_url", null);
+  };
+
+  // Handle removing the avatar
+  const handleRemoveAvatar = () => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+    handleFieldChange("avatar_url", null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Get the current display image URL (either preview or existing)
+  const getCurrentImageUrl = () => {
+    if (imagePreviewUrl) return imagePreviewUrl;
+    return formData.avatar_url;
   };
 
   // Enter edit mode
@@ -182,40 +252,73 @@ export function TestimonialsEditor({
 
     setIsSaving(true);
 
-    const { error } = await updateTestimonial(selectedId, {
-      name: formData.name.trim(),
-      role_company: formData.role_company.trim(),
-      message: formData.message.trim(),
-      avatar_url: formData.avatar_url || null,
-      rating: formData.rating ?? null,
-      sort_order: formData.sort_order ?? 0,
-      is_active: formData.is_active ?? false,
-    });
+    try {
+      let finalAvatarUrl = formData.avatar_url;
 
-    if (error) {
+      // Upload image if a new file was selected
+      if (selectedImageFile) {
+        console.log("Uploading image:", selectedImageFile.name);
+        const { url, error } = await uploadImage(
+          selectedImageFile,
+          "cms-testimonials-imgs",
+        );
+        console.log("Upload result - URL:", url, "Error:", error);
+        if (error || !url) {
+          toast.error(`Upload failed: ${error || "No URL returned"}`);
+          console.error("Image upload failed:", error);
+          setIsSaving(false);
+          return;
+        }
+        finalAvatarUrl = url;
+        console.log("Image uploaded successfully:", finalAvatarUrl);
+      }
+
+      const { error } = await updateTestimonial(selectedId, {
+        name: formData.name.trim(),
+        role_company: formData.role_company.trim(),
+        message: formData.message.trim(),
+        avatar_url: finalAvatarUrl || null,
+        rating: formData.rating ?? null,
+        sort_order: formData.sort_order ?? 0,
+        is_active: formData.is_active ?? false,
+      });
+
+      if (error) {
+        console.error(error);
+        toast.error("Failed to save changes");
+      } else {
+        // Update local state
+        setTestimonials((prev) =>
+          prev.map((t) =>
+            t.id === selectedId
+              ? {
+                  ...t,
+                  name: formData.name!.trim(),
+                  role_company: formData.role_company!.trim(),
+                  message: formData.message!.trim(),
+                  avatar_url: finalAvatarUrl || null,
+                  rating: formData.rating ?? null,
+                  sort_order: formData.sort_order ?? 0,
+                  is_active: formData.is_active ?? false,
+                  updated_at: new Date().toISOString(),
+                }
+              : t,
+          ),
+        );
+
+        // Cleanup
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setSelectedImageFile(null);
+        setImagePreviewUrl(null);
+
+        setIsEditMode(false);
+        toast.success("Changes saved successfully");
+      }
+    } catch (error) {
       console.error(error);
       toast.error("Failed to save changes");
-    } else {
-      // Update local state
-      setTestimonials((prev) =>
-        prev.map((t) =>
-          t.id === selectedId
-            ? {
-                ...t,
-                name: formData.name!.trim(),
-                role_company: formData.role_company!.trim(),
-                message: formData.message!.trim(),
-                avatar_url: formData.avatar_url || null,
-                rating: formData.rating ?? null,
-                sort_order: formData.sort_order ?? 0,
-                is_active: formData.is_active ?? false,
-                updated_at: new Date().toISOString(),
-              }
-            : t
-        )
-      );
-      setIsEditMode(false);
-      toast.success("Changes saved successfully");
     }
 
     setIsSaving(false);
@@ -235,6 +338,14 @@ export function TestimonialsEditor({
         is_active: selectedTestimonial.is_active,
       });
     }
+
+    // Cleanup image preview
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+
     setIsEditMode(false);
   };
 
@@ -252,6 +363,14 @@ export function TestimonialsEditor({
       sort_order: testimonials.length,
       is_active: false,
     });
+    setImageError(false);
+
+    // Cleanup image preview
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
   };
 
   // Save new testimonial to database
@@ -271,25 +390,58 @@ export function TestimonialsEditor({
 
     setIsSaving(true);
 
-    const { data, error } = await createTestimonial({
-      name: formData.name.trim(),
-      role_company: formData.role_company.trim(),
-      message: formData.message.trim(),
-      avatar_url: formData.avatar_url || null,
-      rating: formData.rating ?? null,
-      sort_order: formData.sort_order ?? testimonials.length,
-      is_active: formData.is_active ?? false,
-    });
+    try {
+      let finalAvatarUrl = formData.avatar_url;
 
-    if (error) {
+      // Upload image if a file was selected
+      if (selectedImageFile) {
+        console.log("Uploading image:", selectedImageFile.name);
+        const { url, error } = await uploadImage(
+          selectedImageFile,
+          "cms-testimonials-imgs",
+        );
+        console.log("Upload result - URL:", url, "Error:", error);
+        if (error || !url) {
+          toast.error(`Upload failed: ${error || "No URL returned"}`);
+          console.error("Image upload failed:", error);
+          setIsSaving(false);
+          return;
+        }
+        finalAvatarUrl = url;
+        console.log("Image uploaded successfully:", finalAvatarUrl);
+      }
+
+      const { data, error } = await createTestimonial({
+        name: formData.name.trim(),
+        role_company: formData.role_company.trim(),
+        message: formData.message.trim(),
+        avatar_url: finalAvatarUrl || null,
+        rating: formData.rating ?? null,
+        sort_order: formData.sort_order ?? testimonials.length,
+        is_active: formData.is_active ?? false,
+      });
+
+      if (error) {
+        console.error(error);
+        toast.error("Failed to create testimonial");
+      } else if (data) {
+        setTestimonials((prev) => [...prev, data]);
+        setSelectedId(data.id);
+
+        // Cleanup
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setSelectedImageFile(null);
+        setImagePreviewUrl(null);
+
+        setIsCreateMode(false);
+        setPreviousSelectedId(null);
+        toast.success("Testimonial created successfully");
+      }
+    } catch (error) {
       console.error(error);
       toast.error("Failed to create testimonial");
-    } else if (data) {
-      setTestimonials((prev) => [...prev, data]);
-      setSelectedId(data.id);
-      setIsCreateMode(false);
-      setPreviousSelectedId(null);
-      toast.success("Testimonial created successfully");
     }
 
     setIsSaving(false);
@@ -301,6 +453,13 @@ export function TestimonialsEditor({
     setSelectedId(previousSelectedId || testimonials[0]?.id || null);
     setPreviousSelectedId(null);
     setFormData({});
+
+    // Cleanup image preview
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
   };
 
   // Delete testimonial
@@ -321,7 +480,7 @@ export function TestimonialsEditor({
       toast.error("Failed to delete testimonial");
     } else {
       const updatedTestimonials = testimonials.filter(
-        (t) => t.id !== deleteTarget.id
+        (t) => t.id !== deleteTarget.id,
       );
       setTestimonials(updatedTestimonials);
 
@@ -626,6 +785,110 @@ export function TestimonialsEditor({
                   />
                 </div>
 
+                {/* Avatar Upload Field */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Customer Avatar
+                  </Label>
+
+                  {/* Current Avatar Preview */}
+                  {getCurrentImageUrl() && !imageError ? (
+                    <div className="flex items-start gap-4">
+                      <div className="relative">
+                        <img
+                          src={getCurrentImageUrl()!}
+                          alt="Customer avatar"
+                          className="h-24 w-24 rounded-lg object-cover border border-gray-200"
+                          onError={() => setImageError(true)}
+                        />
+                        {(isEditMode || isCreateMode) && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={handleRemoveAvatar}
+                            disabled={isSaving}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                      {(isEditMode || isCreateMode) && (
+                        <div className="flex-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSaving}
+                            className="w-full sm:w-auto"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Change Avatar
+                          </Button>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {selectedImageFile
+                              ? `Selected: ${selectedImageFile.name} (will upload on save)`
+                              : "Recommended: Square image, max 5MB"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Upload Button - shown when no avatar */
+                    <div className="flex flex-col gap-2">
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                          isEditMode || isCreateMode
+                            ? "border-gray-300 hover:border-gray-400 cursor-pointer"
+                            : "border-gray-200 bg-gray-50"
+                        }`}
+                        onClick={() =>
+                          (isEditMode || isCreateMode) &&
+                          !isSaving &&
+                          fileInputRef.current?.click()
+                        }
+                      >
+                        <div className="flex flex-col items-center">
+                          <ImageIcon className="h-8 w-8 text-gray-400" />
+                          <p className="mt-2 text-sm text-gray-600">
+                            {isEditMode || isCreateMode
+                              ? "Click to select an avatar"
+                              : "No avatar uploaded"}
+                          </p>
+                          {(isEditMode || isCreateMode) && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              PNG, JPG, GIF up to 5MB
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {(isEditMode || isCreateMode) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isSaving}
+                          className="w-full sm:w-auto"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Select Avatar
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                    disabled={!isEditMode && !isCreateMode}
+                  />
+                </div>
+
                 {/* Avatar URL Field */}
                 <div className="space-y-2">
                   <Label
@@ -667,7 +930,7 @@ export function TestimonialsEditor({
                     onChange={(e) =>
                       handleFieldChange(
                         "sort_order",
-                        parseInt(e.target.value) || 0
+                        parseInt(e.target.value) || 0,
                       )
                     }
                     className={`h-10 w-32 ${
@@ -716,7 +979,7 @@ export function TestimonialsEditor({
                         <span className="ml-2 text-gray-700">
                           {selectedTestimonial.created_at
                             ? new Date(
-                                selectedTestimonial.created_at
+                                selectedTestimonial.created_at,
                               ).toLocaleDateString()
                             : "N/A"}
                         </span>
