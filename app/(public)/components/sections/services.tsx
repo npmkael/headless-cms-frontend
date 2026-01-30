@@ -4,6 +4,7 @@ type Service =
   | {
       id: string;
       title: string;
+      icon_url: string | null;
       description: string | null;
     }[]
   | null;
@@ -28,7 +29,8 @@ export default function Services({ services }: { services: Service }) {
             key={service.id}
             title={service.title}
             variant={variants[index % 3]}
-            id={""}
+            id={service.id}
+            icon_url={service.icon_url}
             description={service.description && ""}
           />
         ))}

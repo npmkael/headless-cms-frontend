@@ -7,6 +7,7 @@ interface ServiceCardProps {
   title: string;
   description: string | null;
   variant?: "light" | "dark" | "green";
+  icon_url: string | null;
 }
 
 const variants = {
@@ -42,6 +43,7 @@ const variants = {
 export default function ServiceCard({
   id,
   title,
+  icon_url,
   description,
   variant = "light",
 }: ServiceCardProps) {
@@ -89,17 +91,17 @@ export default function ServiceCard({
         </Link>
       </div>
 
-      {/* <div className="flex items-center justify-center md:justify-end flex-shrink-0">
-        {illustration && (
+      <div className="flex items-center justify-center md:justify-end flex-shrink-0">
+        {icon_url && (
           <Image
-            src={illustration}
+            src={icon_url}
             alt={title}
             width={192}
             height={192}
             className="w-32 h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 object-contain"
           />
         )}
-      </div> */}
+      </div>
     </div>
   );
 }

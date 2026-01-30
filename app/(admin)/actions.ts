@@ -13,6 +13,84 @@ type Testimonial = Tables<"testimonials">;
 type ContactSubmission = Tables<"contact_submissions">;
 
 // ============================================================================
+// FILE UPLOAD ACTIONS
+// ============================================================================
+
+export async function uploadImage(
+  file: File,
+  bucket: string = "cms-images"
+): Promise<{ url: string | null; error: string | null }> {
+  try {
+    // Generate unique filename
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random()
+      .toString(36)
+      .substring(7)}.${fileExt}`;
+    const filePath = fileName;
+
+    // Convert File to ArrayBuffer then to Buffer for upload
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Upload to Supabase Storage
+    const { data, error } = await supabaseAdmin.storage
+      .from(bucket)
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Error uploading image:", error);
+      return { url: null, error: error.message };
+    }
+
+    // Get public URL
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from(bucket).getPublicUrl(data.path);
+
+    return { url: publicUrl, error: null };
+  } catch (error) {
+    console.error("Error in uploadImage:", error);
+    return {
+      url: null,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function deleteImageFromStorage(
+  url: string,
+  bucket: string = "service-icons"
+): Promise<{ error: string | null }> {
+  try {
+    // Extract file path from URL
+    const urlParts = url.split(`/${bucket}/`);
+    if (urlParts.length < 2) {
+      return { error: "Invalid URL format" };
+    }
+    const filePath = urlParts[1];
+
+    const { error } = await supabaseAdmin.storage
+      .from(bucket)
+      .remove([filePath]);
+
+    if (error) {
+      console.error("Error deleting image:", error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error("Error in deleteImageFromStorage:", error);
+    return {
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+// ============================================================================
 // SERVICES ACTIONS
 // ============================================================================
 

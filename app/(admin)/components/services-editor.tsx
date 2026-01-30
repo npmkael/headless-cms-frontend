@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Plus,
   FileText,
@@ -10,6 +10,8 @@ import {
   Check,
   X,
   ChevronLeft,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +30,12 @@ import {
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
-import { createService, updateService, deleteService } from "../actions";
+import {
+  createService,
+  updateService,
+  deleteService,
+  uploadImage,
+} from "../actions";
 
 // Types
 export type Service = Tables<"services">;
@@ -68,6 +75,9 @@ export function ServicesEditor({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showDetailOnMobile, setShowDetailOnMobile] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form state for selected service
   const [formData, setFormData] = useState<Partial<Service>>({});
@@ -98,8 +108,19 @@ export function ServicesEditor({
         is_active: selectedService.is_active,
       });
       setImageError(false);
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
     }
   }, [selectedId, selectedService, isCreateMode, isEditMode]);
+
+  // Cleanup preview URL when component unmounts or preview changes
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   // Handle form field changes (only allowed in edit or create mode)
   const handleFieldChange = (
@@ -108,6 +129,57 @@ export function ServicesEditor({
   ) => {
     if (!isEditMode && !isCreateMode) return;
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handle image file selection (no upload yet)
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
+
+    // Cleanup previous preview URL if exists
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+
+    // Create preview URL for the selected file
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedImageFile(file);
+    setImagePreviewUrl(previewUrl);
+    setImageError(false);
+
+    // Clear the icon_url from formData since we have a new file
+    handleFieldChange("icon_url", null);
+  };
+
+  // Handle removing the icon
+  const handleRemoveIcon = () => {
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+    handleFieldChange("icon_url", null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Get the current display image URL (either preview or existing)
+  const getCurrentImageUrl = () => {
+    if (imagePreviewUrl) return imagePreviewUrl;
+    return formData.icon_url;
   };
 
   // Enter edit mode
@@ -130,36 +202,65 @@ export function ServicesEditor({
 
     setIsSaving(true);
 
-    const { error } = await updateService(selectedId, {
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      icon_url: formData.icon_url || null,
-      sort_order: formData.sort_order ?? 0,
-      is_active: formData.is_active ?? false,
-    });
+    try {
+      let finalIconUrl = formData.icon_url;
 
-    if (error) {
+      // Upload image if a new file was selected
+      if (selectedImageFile) {
+        const { url, error } = await uploadImage(
+          selectedImageFile,
+          "cms-services-imgs"
+        );
+        if (error || !url) {
+          toast.error(error || "Failed to upload image");
+          setIsSaving(false);
+          return;
+        }
+        finalIconUrl = url;
+      }
+
+      const { error } = await updateService(selectedId, {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        icon_url: finalIconUrl || null,
+        sort_order: formData.sort_order ?? 0,
+        is_active: formData.is_active ?? false,
+      });
+
+      if (error) {
+        console.error(error);
+        toast.error("Failed to save changes");
+      } else {
+        // Update local state
+        setServices((prev) =>
+          prev.map((s) =>
+            s.id === selectedId
+              ? {
+                  ...s,
+                  title: formData.title!.trim(),
+                  description: formData.description!.trim(),
+                  icon_url: finalIconUrl || null,
+                  sort_order: formData.sort_order ?? 0,
+                  is_active: formData.is_active ?? false,
+                  updated_at: new Date().toISOString(),
+                }
+              : s
+          )
+        );
+
+        // Cleanup
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setSelectedImageFile(null);
+        setImagePreviewUrl(null);
+
+        setIsEditMode(false);
+        toast.success("Changes saved successfully");
+      }
+    } catch (error) {
       console.error(error);
       toast.error("Failed to save changes");
-    } else {
-      // Update local state
-      setServices((prev) =>
-        prev.map((s) =>
-          s.id === selectedId
-            ? {
-                ...s,
-                title: formData.title!.trim(),
-                description: formData.description!.trim(),
-                icon_url: formData.icon_url || null,
-                sort_order: formData.sort_order ?? 0,
-                is_active: formData.is_active ?? false,
-                updated_at: new Date().toISOString(),
-              }
-            : s
-        )
-      );
-      setIsEditMode(false);
-      toast.success("Changes saved successfully");
     }
 
     setIsSaving(false);
@@ -177,6 +278,14 @@ export function ServicesEditor({
         is_active: selectedService.is_active,
       });
     }
+
+    // Cleanup image preview
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
+
     setIsEditMode(false);
   };
 
@@ -193,6 +302,13 @@ export function ServicesEditor({
       is_active: false,
     });
     setImageError(false);
+
+    // Cleanup image preview
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
   };
 
   // Save new service to database
@@ -208,23 +324,52 @@ export function ServicesEditor({
 
     setIsSaving(true);
 
-    const { data, error } = await createService({
-      title: formData.title.trim(),
-      description: formData.description.trim(),
-      icon_url: formData.icon_url || null,
-      sort_order: formData.sort_order ?? services.length,
-      is_active: formData.is_active ?? false,
-    });
+    try {
+      let finalIconUrl = formData.icon_url;
 
-    if (error) {
+      // Upload image if a file was selected
+      if (selectedImageFile) {
+        const { url, error } = await uploadImage(
+          selectedImageFile,
+          "cms-services-imgs"
+        );
+        if (error || !url) {
+          toast.error(error || "Failed to upload image");
+          setIsSaving(false);
+          return;
+        }
+        finalIconUrl = url;
+      }
+
+      const { data, error } = await createService({
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        icon_url: finalIconUrl || null,
+        sort_order: formData.sort_order ?? services.length,
+        is_active: formData.is_active ?? false,
+      });
+
+      if (error) {
+        console.error(error);
+        toast.error("Failed to create service");
+      } else if (data) {
+        setServices((prev) => [...prev, data]);
+        setSelectedId(data.id);
+
+        // Cleanup
+        if (imagePreviewUrl) {
+          URL.revokeObjectURL(imagePreviewUrl);
+        }
+        setSelectedImageFile(null);
+        setImagePreviewUrl(null);
+
+        setIsCreateMode(false);
+        setPreviousSelectedId(null);
+        toast.success("Service created successfully");
+      }
+    } catch (error) {
       console.error(error);
       toast.error("Failed to create service");
-    } else if (data) {
-      setServices((prev) => [...prev, data]);
-      setSelectedId(data.id);
-      setIsCreateMode(false);
-      setPreviousSelectedId(null);
-      toast.success("Service created successfully");
     }
 
     setIsSaving(false);
@@ -236,6 +381,13 @@ export function ServicesEditor({
     setSelectedId(previousSelectedId || services[0]?.id || null);
     setPreviousSelectedId(null);
     setFormData({});
+
+    // Cleanup image preview
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
   };
 
   // Delete service
@@ -516,6 +668,110 @@ export function ServicesEditor({
                     className={`resize-none ${
                       !isEditMode && !isCreateMode ? "bg-gray-50" : ""
                     }`}
+                    disabled={!isEditMode && !isCreateMode}
+                  />
+                </div>
+
+                {/* Icon Upload Field */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Service Icon
+                  </Label>
+
+                  {/* Current Icon Preview */}
+                  {getCurrentImageUrl() && !imageError ? (
+                    <div className="flex items-start gap-4">
+                      <div className="relative">
+                        <img
+                          src={getCurrentImageUrl()!}
+                          alt="Service icon"
+                          className="h-24 w-24 rounded-lg object-cover border border-gray-200"
+                          onError={() => setImageError(true)}
+                        />
+                        {(isEditMode || isCreateMode) && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                            onClick={handleRemoveIcon}
+                            disabled={isSaving}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                      {(isEditMode || isCreateMode) && (
+                        <div className="flex-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSaving}
+                            className="w-full sm:w-auto"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Change Icon
+                          </Button>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {selectedImageFile
+                              ? `Selected: ${selectedImageFile.name} (will upload on save)`
+                              : "Recommended: Square image, max 5MB"}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Upload Button - shown when no icon */
+                    <div className="flex flex-col gap-2">
+                      <div
+                        className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                          isEditMode || isCreateMode
+                            ? "border-gray-300 hover:border-gray-400 cursor-pointer"
+                            : "border-gray-200 bg-gray-50"
+                        }`}
+                        onClick={() =>
+                          (isEditMode || isCreateMode) &&
+                          !isSaving &&
+                          fileInputRef.current?.click()
+                        }
+                      >
+                        <div className="flex flex-col items-center">
+                          <ImageIcon className="h-8 w-8 text-gray-400" />
+                          <p className="mt-2 text-sm text-gray-600">
+                            {isEditMode || isCreateMode
+                              ? "Click to select an icon"
+                              : "No icon uploaded"}
+                          </p>
+                          {(isEditMode || isCreateMode) && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              PNG, JPG, GIF up to 5MB
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {(isEditMode || isCreateMode) && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isSaving}
+                          className="w-full sm:w-auto"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          Select Icon
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Hidden File Input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
                     disabled={!isEditMode && !isCreateMode}
                   />
                 </div>

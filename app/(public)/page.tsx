@@ -10,10 +10,6 @@ import Footer from "@/app/(public)/components/sections/footer";
 
 import { createClient } from "@/lib/supabase/server";
 
-// TODO: Add error handling
-// TODO: Add loading state
-// TODO: pass states to the other sections
-
 export default async function Home() {
   const supabase = await createClient();
 

@@ -116,7 +116,7 @@ function TeamCard({ member, id }: TeamCardProps) {
         {member.socials_json && (
           <div className="shrink-0 place-items-start h-full">
             <Link
-              href={JSON.parse(member.socials_json).linkedin}
+              href=""
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-full bg-black flex items-center justify-center hover:bg-gray-800 transition-colors"
