@@ -56,3 +56,6 @@ Login at [http://localhost:3000/admin](http://localhost:3000/admin)
 npm run build
 npm start
 ```
+
+## Screenshots
+<img width="1920" height="6339" alt="Image" src="https://github.com/user-attachments/assets/36b00f3c-40da-4ed7-8e2a-50f0b8533940" />
