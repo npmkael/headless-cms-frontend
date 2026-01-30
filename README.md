@@ -157,38 +157,6 @@ CREATE TABLE contact_submissions (
 );
 ```
 
-#### Enable Row Level Security (RLS)
-
-```sql
--- Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE case_studies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE working_processes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
-
--- Public read access for active content
-CREATE POLICY "Public read access" ON services FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON case_studies FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON working_processes FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON team_members FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON testimonials FOR SELECT USING (is_active = true);
-
--- Allow public to insert contact submissions
-CREATE POLICY "Public insert access" ON contact_submissions FOR INSERT WITH CHECK (true);
-
--- Authenticated users (admin) have full access
-CREATE POLICY "Admin full access" ON users FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON services FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON case_studies FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON working_processes FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON team_members FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON testimonials FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON contact_submissions FOR ALL USING (auth.role() = 'authenticated');
-```
-
 ### 5. Seed Data
 
 Run the following SQL to insert sample data:
