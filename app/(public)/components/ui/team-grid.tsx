@@ -47,9 +47,10 @@ const cardVariants = {
 interface TeamCardProps {
   member: TeamMember;
   id: string;
+  avatar_url: string | null;
 }
 
-function TeamCard({ member, id }: TeamCardProps) {
+function TeamCard({ member, id, avatar_url }: TeamCardProps) {
   return (
     <motion.div
       variants={cardVariants}
@@ -86,7 +87,7 @@ function TeamCard({ member, id }: TeamCardProps) {
             />
           </svg>
           {/* Avatar image clipped to clover shape */}
-          {true && (
+          {avatar_url && (
             <div
               className="absolute right-1.5 top-0 w-[70px] h-[70px] overflow-hidden"
               style={{
@@ -95,7 +96,7 @@ function TeamCard({ member, id }: TeamCardProps) {
               }}
             >
               <Image
-                src="/images/team/team-1.jpg"
+                src={avatar_url}
                 alt={member.name || "Team member"}
                 fill
                 className="object-cover grayscale scale-130"
@@ -157,8 +158,13 @@ export default function TeamGrid({
         teamMembers.map(
           (member, index) =>
             member.is_active && (
-              <TeamCard key={member.id} member={member} id={member.id} />
-            )
+              <TeamCard
+                key={member.id}
+                member={member}
+                id={member.id}
+                avatar_url={member.avatar_url}
+              />
+            ),
         )
       ) : (
         <div>
