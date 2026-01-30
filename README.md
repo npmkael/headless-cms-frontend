@@ -59,8 +59,21 @@ npm start
 
 ## Screenshots
 
-Landing Page
+# Landing Page
 <img width="1920" height="6339" alt="Image" src="https://github.com/user-attachments/assets/36b00f3c-40da-4ed7-8e2a-50f0b8533940" />
 
-Login page
+# Login page
 <img width="1920" height="943" alt="Image" src="https://github.com/user-attachments/assets/c51d5064-662d-4eee-b3af-05745608c0eb" />
+
+# Admin Dashboard
+<img width="1905" height="948" alt="Image" src="https://github.com/user-attachments/assets/a05036bc-3a36-4da9-bb3d-15cf2ddefabf" />
+
+<img width="1896" height="942" alt="Image" src="https://github.com/user-attachments/assets/59e02d63-763e-4861-a3c7-c1124b4f759e" />
+
+<img width="1911" height="943" alt="Image" src="https://github.com/user-attachments/assets/a8d250ad-1c2b-4d94-81cb-08abc12feb09" />
+
+<img width="1889" height="940" alt="Image" src="https://github.com/user-attachments/assets/e1988f33-ae99-4d8a-8e01-20fcc8783c78" />
+
+<img width="1891" height="940" alt="Image" src="https://github.com/user-attachments/assets/cce72f3b-b394-4485-874f-2b15c1ca25ea" />
+
+<img width="1904" height="940" alt="Image" src="https://github.com/user-attachments/assets/8c050369-69d8-48ee-ae9b-b30f07f55bbf" />
