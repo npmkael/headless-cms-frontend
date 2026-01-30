@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { WorkingProcessesTable } from "../../components/working-processes-table";
+import {
+  WorkingProcessesEditor,
+  type WorkingProcess,
+} from "../../components/working-processes-editor";
 
 export default async function WorkingProcessesPage() {
   const supabase = await createClient();
@@ -13,11 +16,11 @@ export default async function WorkingProcessesPage() {
     console.error("Error fetching working processes:", error);
   }
 
-  const workingProcesses = data ?? [];
+  const workingProcesses: WorkingProcess[] = data ?? [];
 
   return (
-    <div className="px-4 lg:px-6">
-      <WorkingProcessesTable initialWorkingProcesses={workingProcesses} />
+    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height)-32px)]">
+      <WorkingProcessesEditor initialWorkingProcesses={workingProcesses} />
     </div>
   );
 }
