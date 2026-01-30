@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { TeamTable } from "../../components/team-table";
+import {
+  TeamMembersEditor,
+  type TeamMember,
+} from "../../components/team-members-editor";
 
-export default async function TeamPage() {
+export default async function TeamMembersPage() {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -13,11 +16,11 @@ export default async function TeamPage() {
     console.error("Error fetching team members:", error);
   }
 
-  const teamMembers = data ?? [];
+  const teamMembers: TeamMember[] = data ?? [];
 
   return (
-    <div className="px-4 lg:px-6">
-      <TeamTable initialTeamMembers={teamMembers} />
+    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height)-32px)]">
+      <TeamMembersEditor initialTeamMembers={teamMembers} />
     </div>
   );
 }
