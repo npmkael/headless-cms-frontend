@@ -365,7 +365,7 @@ export function ServicesEditor({
         {selectedService || isCreateMode ? (
           <>
             {/* Header with title and status */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
               <div className="flex items-center gap-3">
                 {/* Back button - mobile only */}
                 <Button

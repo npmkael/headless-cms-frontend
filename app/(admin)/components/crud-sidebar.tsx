@@ -104,7 +104,7 @@ export function CrudSidebar<T extends CrudSidebarItem>({
       }`}
     >
       {/* Header */}
-      <div className="flex items-center h-[65px] justify-between border-b border-gray-200 bg-white px-4 sm:px-6 py-3 sm:py-4">
+      <div className="shrink-0 flex items-center h-[65px] justify-between border-b border-gray-200 bg-white px-4 sm:px-6 py-3 sm:py-4">
         <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
         <Button
           variant="ghost"
@@ -118,7 +118,7 @@ export function CrudSidebar<T extends CrudSidebarItem>({
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="shrink-0 p-3 border-b border-gray-200">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
