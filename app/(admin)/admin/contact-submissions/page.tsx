@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { ContactSubmissionsTable } from "../../components/contact-submissions-table";
+import { ContactSubmissionsTable } from "../../components/contact-submission-table";
 
 export default async function ContactSubmissionsPage() {
   const supabase = await createClient();
@@ -16,7 +16,7 @@ export default async function ContactSubmissionsPage() {
   const submissions = data ?? [];
 
   return (
-    <div className="px-4 lg:px-6">
+    <div className="px-4 lg:px-6 pt-4 lg:pt-6">
       <ContactSubmissionsTable initialSubmissions={submissions} />
     </div>
   );
