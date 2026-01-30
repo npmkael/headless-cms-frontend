@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { TestimonialsTable } from "../../components/testimonials-table";
+import {
+  TestimonialsEditor,
+  type Testimonial,
+} from "../../components/testimonials-editor";
 
 export default async function TestimonialsPage() {
   const supabase = await createClient();
@@ -13,11 +16,11 @@ export default async function TestimonialsPage() {
     console.error("Error fetching testimonials:", error);
   }
 
-  const testimonials = data ?? [];
+  const testimonials: Testimonial[] = data ?? [];
 
   return (
-    <div className="px-4 lg:px-6">
-      <TestimonialsTable initialTestimonials={testimonials} />
+    <div className="flex flex-1 flex-col h-[calc(100vh-var(--header-height)-32px)]">
+      <TestimonialsEditor initialTestimonials={testimonials} />
     </div>
   );
 }

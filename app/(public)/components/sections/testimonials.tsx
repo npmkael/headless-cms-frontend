@@ -24,6 +24,7 @@ export default function Testimonials({
   const [slideWidth, setSlideWidth] = useState(598); // 550px card + 48px gap
   const [initialOffset, setInitialOffset] = useState(0);
   const totalSlides = testimonials ? testimonials.length : 0;
+  const testimonialLength = testimonials?.length;
 
   // TODO: Message bubbles are still not centered
 
@@ -75,7 +76,7 @@ export default function Testimonials({
       {/*  */}
       <div className="flex flex-col bg-black rounded-[32px] md:rounded-[40px] py-8 md:py-12 lg:py-16 w-full overflow-hidden">
         <motion.div
-          className="flex w-max md:px-[calc(50%-275px)] gap-4 md:gap-6"
+          className="flex w-max md:px-[calc(50%-275px)] gap-8 md:gap-12"
           animate={{
             x: initialOffset - currentIndex * slideWidth,
           }}
@@ -91,8 +92,8 @@ export default function Testimonials({
                 testimonial.is_active && (
                   <div key={testimonial.id} className="shrink-0 flex flex-col">
                     <div className="relative">
-                      <div className="border border-main p-6 md:p-12 w-[calc(100vw-80px)] md:w-[550px] rounded-[32px] md:rounded-[45px]">
-                        <p className="text-xs md:text-base text-white leading-relaxed">
+                      <div className="border border-main p-6 md:p-10 w-[calc(100vw-80px)] md:w-[550px] h-[180px] md:h-[250px] rounded-[32px] md:rounded-[45px] overflow-hidden flex items-center justify-center">
+                        <p className="text-xs md:text-base text-white leading-relaxed line-clamp-6">
                           "{testimonial.message}"
                         </p>
                       </div>
@@ -140,7 +141,7 @@ export default function Testimonials({
           </motion.button>
 
           <div className="flex items-center gap-4">
-            {[0, 1, 2].map((index) => (
+            {testimonials?.map((_, index) => (
               <motion.button
                 key={index}
                 onClick={() => handleDotClick(index)}
