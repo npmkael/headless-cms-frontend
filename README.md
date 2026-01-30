@@ -160,7 +160,7 @@ CREATE TABLE contact_submissions (
 );
 ```
 
-> **Note**: RLS (Row Level Security) is not required for this application. Admin CRUD operations use the service role key via Server Actions, which bypasses RLS. Public read operations fetch data server-side.
+**Note**: RLS (Row Level Security) is not required for this application. Admin CRUD operations use the service role key via Server Actions, which bypasses RLS. Public read operations fetch data server-side.
 
 ### 5. Seed Data
 
