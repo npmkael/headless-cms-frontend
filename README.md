@@ -60,9 +60,12 @@ Create a `.env.local` file in the root directory:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 ```
 
 You can find these values in your Supabase project dashboard under **Settings > API**.
+
+> **Note**: The `SUPABASE_SERVICE_ROLE_KEY` is used server-side only for admin CRUD operations. Never expose this key to the client.
 
 ### 4. Database Setup
 
@@ -157,37 +160,7 @@ CREATE TABLE contact_submissions (
 );
 ```
 
-#### Enable Row Level Security (RLS)
-
-```sql
--- Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE case_studies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE working_processes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contact_submissions ENABLE ROW LEVEL SECURITY;
-
--- Public read access for active content
-CREATE POLICY "Public read access" ON services FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON case_studies FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON working_processes FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON team_members FOR SELECT USING (is_active = true);
-CREATE POLICY "Public read access" ON testimonials FOR SELECT USING (is_active = true);
-
--- Allow public to insert contact submissions
-CREATE POLICY "Public insert access" ON contact_submissions FOR INSERT WITH CHECK (true);
-
--- Authenticated users (admin) have full access
-CREATE POLICY "Admin full access" ON users FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON services FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON case_studies FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON working_processes FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON team_members FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON testimonials FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Admin full access" ON contact_submissions FOR ALL USING (auth.role() = 'authenticated');
-```
+> **Note**: RLS (Row Level Security) is not required for this application. Admin CRUD operations use the service role key via Server Actions, which bypasses RLS. Public read operations fetch data server-side.
 
 ### 5. Seed Data
 
