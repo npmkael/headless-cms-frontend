@@ -25,10 +25,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import {
+  createTeamMember,
+  updateTeamMember,
+  deleteTeamMember,
+} from "../actions";
 
 // Types
 export type TeamMember = Tables<"team_members">;
@@ -129,20 +133,15 @@ export function TeamMembersEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("team_members")
-      .update({
-        name: formData.name.trim(),
-        role: formData.role.trim(),
-        avatar_url: formData.avatar_url || null,
-        socials_json: formData.socials_json || null,
-        sort_order: formData.sort_order ?? 0,
-        is_active: formData.is_active ?? false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedId);
+    const { error } = await updateTeamMember(selectedId, {
+      name: formData.name.trim(),
+      role: formData.role.trim(),
+      avatar_url: formData.avatar_url || null,
+      socials_json: formData.socials_json || null,
+      sort_order: formData.sort_order ?? 0,
+      is_active: formData.is_active ?? false,
+    });
 
     if (error) {
       console.error(error);
@@ -215,22 +214,15 @@ export function TeamMembersEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const newMember = {
+    const { data, error } = await createTeamMember({
       name: formData.name.trim(),
       role: formData.role.trim(),
       avatar_url: formData.avatar_url || null,
       socials_json: formData.socials_json || null,
       sort_order: formData.sort_order ?? teamMembers.length,
       is_active: formData.is_active ?? false,
-    };
-
-    const { data, error } = await supabase
-      .from("team_members")
-      .insert(newMember)
-      .select()
-      .single();
+    });
 
     if (error) {
       console.error(error);
@@ -264,12 +256,8 @@ export function TeamMembersEditor({
     if (!deleteTarget) return;
 
     setIsDeleting(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("team_members")
-      .delete()
-      .eq("id", deleteTarget.id);
+    const { error } = await deleteTeamMember(deleteTarget.id);
 
     if (error) {
       console.error(error);

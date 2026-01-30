@@ -26,10 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import {
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
+} from "../actions";
 
 // Types
 export type Testimonial = Tables<"testimonials">;
@@ -177,21 +181,16 @@ export function TestimonialsEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("testimonials")
-      .update({
-        name: formData.name.trim(),
-        role_company: formData.role_company.trim(),
-        message: formData.message.trim(),
-        avatar_url: formData.avatar_url || null,
-        rating: formData.rating ?? null,
-        sort_order: formData.sort_order ?? 0,
-        is_active: formData.is_active ?? false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedId);
+    const { error } = await updateTestimonial(selectedId, {
+      name: formData.name.trim(),
+      role_company: formData.role_company.trim(),
+      message: formData.message.trim(),
+      avatar_url: formData.avatar_url || null,
+      rating: formData.rating ?? null,
+      sort_order: formData.sort_order ?? 0,
+      is_active: formData.is_active ?? false,
+    });
 
     if (error) {
       console.error(error);
@@ -271,9 +270,8 @@ export function TestimonialsEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const newTestimonial = {
+    const { data, error } = await createTestimonial({
       name: formData.name.trim(),
       role_company: formData.role_company.trim(),
       message: formData.message.trim(),
@@ -281,13 +279,7 @@ export function TestimonialsEditor({
       rating: formData.rating ?? null,
       sort_order: formData.sort_order ?? testimonials.length,
       is_active: formData.is_active ?? false,
-    };
-
-    const { data, error } = await supabase
-      .from("testimonials")
-      .insert(newTestimonial)
-      .select()
-      .single();
+    });
 
     if (error) {
       console.error(error);
@@ -321,12 +313,8 @@ export function TestimonialsEditor({
     if (!deleteTarget) return;
 
     setIsDeleting(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("testimonials")
-      .delete()
-      .eq("id", deleteTarget.id);
+    const { error } = await deleteTestimonial(deleteTarget.id);
 
     if (error) {
       console.error(error);

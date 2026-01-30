@@ -25,10 +25,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import { createService, updateService, deleteService } from "../actions";
 
 // Types
 export type Service = Tables<"services">;
@@ -129,19 +129,14 @@ export function ServicesEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("services")
-      .update({
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        icon_url: formData.icon_url || null,
-        sort_order: formData.sort_order ?? 0,
-        is_active: formData.is_active ?? false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedId);
+    const { error } = await updateService(selectedId, {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      icon_url: formData.icon_url || null,
+      sort_order: formData.sort_order ?? 0,
+      is_active: formData.is_active ?? false,
+    });
 
     if (error) {
       console.error(error);
@@ -212,21 +207,14 @@ export function ServicesEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const newService = {
+    const { data, error } = await createService({
       title: formData.title.trim(),
       description: formData.description.trim(),
       icon_url: formData.icon_url || null,
       sort_order: formData.sort_order ?? services.length,
       is_active: formData.is_active ?? false,
-    };
-
-    const { data, error } = await supabase
-      .from("services")
-      .insert(newService)
-      .select()
-      .single();
+    });
 
     if (error) {
       console.error(error);
@@ -260,12 +248,8 @@ export function ServicesEditor({
     if (!deleteTarget) return;
 
     setIsDeleting(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("services")
-      .delete()
-      .eq("id", deleteTarget.id);
+    const { error } = await deleteService(deleteTarget.id);
 
     if (error) {
       console.error(error);

@@ -26,10 +26,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import { createCaseStudy, updateCaseStudy, deleteCaseStudy } from "../actions";
 
 // Types
 export type CaseStudy = Tables<"case_studies">;
@@ -130,20 +130,15 @@ export function CaseStudiesEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("case_studies")
-      .update({
-        title: formData.title.trim(),
-        short_description: formData.short_description.trim(),
-        cover_image_url: formData.cover_image_url || null,
-        link_url: formData.link_url || null,
-        sort_order: formData.sort_order ?? 0,
-        is_active: formData.is_active ?? false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedId);
+    const { error } = await updateCaseStudy(selectedId, {
+      title: formData.title.trim(),
+      short_description: formData.short_description.trim(),
+      cover_image_url: formData.cover_image_url || null,
+      link_url: formData.link_url || null,
+      sort_order: formData.sort_order ?? 0,
+      is_active: formData.is_active ?? false,
+    });
 
     if (error) {
       console.error(error);
@@ -216,22 +211,15 @@ export function CaseStudiesEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const newCaseStudy = {
+    const { data, error } = await createCaseStudy({
       title: formData.title.trim(),
       short_description: formData.short_description.trim(),
       cover_image_url: formData.cover_image_url || null,
       link_url: formData.link_url || null,
       sort_order: formData.sort_order ?? caseStudies.length,
       is_active: formData.is_active ?? false,
-    };
-
-    const { data, error } = await supabase
-      .from("case_studies")
-      .insert(newCaseStudy)
-      .select()
-      .single();
+    });
 
     if (error) {
       console.error(error);
@@ -265,12 +253,8 @@ export function CaseStudiesEditor({
     if (!deleteTarget) return;
 
     setIsDeleting(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("case_studies")
-      .delete()
-      .eq("id", deleteTarget.id);
+    const { error } = await deleteCaseStudy(deleteTarget.id);
 
     if (error) {
       console.error(error);

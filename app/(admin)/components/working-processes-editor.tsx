@@ -26,10 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
 import { CrudSidebar, type CrudSidebarItem } from "./crud-sidebar";
+import {
+  createWorkingProcess,
+  updateWorkingProcess,
+  deleteWorkingProcess,
+} from "../actions";
 
 // Types
 export type WorkingProcess = Tables<"working_processes">;
@@ -133,19 +137,14 @@ export function WorkingProcessesEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("working_processes")
-      .update({
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        step_no: formData.step_no,
-        sort_order: formData.sort_order ?? 0,
-        is_active: formData.is_active ?? false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", selectedId);
+    const { error } = await updateWorkingProcess(selectedId, {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      step_no: formData.step_no,
+      sort_order: formData.sort_order ?? 0,
+      is_active: formData.is_active ?? false,
+    });
 
     if (error) {
       console.error(error);
@@ -219,21 +218,14 @@ export function WorkingProcessesEditor({
     }
 
     setIsSaving(true);
-    const supabase = createClient();
 
-    const newProcess = {
+    const { data, error } = await createWorkingProcess({
       title: formData.title.trim(),
       description: formData.description.trim(),
       step_no: formData.step_no,
       sort_order: formData.sort_order ?? workingProcesses.length,
       is_active: formData.is_active ?? false,
-    };
-
-    const { data, error } = await supabase
-      .from("working_processes")
-      .insert(newProcess)
-      .select()
-      .single();
+    });
 
     if (error) {
       console.error(error);
@@ -267,12 +259,8 @@ export function WorkingProcessesEditor({
     if (!deleteTarget) return;
 
     setIsDeleting(true);
-    const supabase = createClient();
 
-    const { error } = await supabase
-      .from("working_processes")
-      .delete()
-      .eq("id", deleteTarget.id);
+    const { error } = await deleteWorkingProcess(deleteTarget.id);
 
     if (error) {
       console.error(error);

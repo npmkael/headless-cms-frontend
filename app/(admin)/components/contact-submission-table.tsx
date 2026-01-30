@@ -40,9 +40,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { IconDotsVertical } from "@tabler/icons-react";
-import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/lib/database.types";
+import { updateContactSubmissionStatus } from "../actions";
 
 // Types
 export type ContactSubmission = Tables<"contact_submissions">;
@@ -74,8 +74,6 @@ export function ContactSubmissionsTable({
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState<string | null>(null);
 
-  const supabase = createClient();
-
   // Filter submissions by status
   const filteredSubmissions =
     statusFilter === "all"
@@ -106,13 +104,7 @@ export function ContactSubmissionsTable({
     setIsUpdatingStatus(id);
 
     try {
-      const { error } = await supabase
-        .from("contact_submissions")
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
+      const { error } = await updateContactSubmissionStatus(id, newStatus);
 
       if (error) {
         console.error("Error updating status:", error);
